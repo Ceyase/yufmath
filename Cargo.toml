@@ -1,0 +1,31 @@
+[package]
+name = "yufmath"
+version = "0.1.0"
+edition = "2021"
+description = "一个基于 Rust 的高性能计算机代数系统（CAS）库"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/your-username/yufmath"
+keywords = ["math", "algebra", "cas", "symbolic", "computation"]
+categories = ["mathematics", "science"]
+
+[dependencies]
+# 数值计算依赖
+num-bigint = "0.4"
+num-rational = "0.4"
+num-complex = "0.4"
+num-traits = "0.2"
+bigdecimal = "0.4"
+
+# 错误处理
+thiserror = "1.0"
+
+# 命令行工具
+clap = { version = "4.0", features = ["derive"] }
+
+[dev-dependencies]
+# 性能基准测试
+criterion = { version = "0.5", features = ["html_reports"] }
+
+[[bench]]
+name = "benchmarks"
+harness = false
