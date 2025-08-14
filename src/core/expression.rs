@@ -5,7 +5,7 @@
 use super::{Number, MathConstant, BinaryOperator, UnaryOperator, ExprType, NumericType};
 use std::fmt::{self, Display};
 use std::collections::HashMap;
-use num_traits::ToPrimitive;
+use num_traits::{ToPrimitive, Zero, Signed};
 
 /// 数学表达式的核心数据结构
 #[derive(Debug, Clone, PartialEq)]
@@ -1180,6 +1180,107 @@ impl Expression {
     /// 求值函数调用
     fn evaluate_function(&self, name: &str, args: &[Number]) -> Result<Number, String> {
         match name {
+            // 三角函数
+            "sin" => {
+                if args.len() != 1 {
+                    return Err("sin函数需要一个参数".to_string());
+                }
+                self.evaluate_trigonometric_function("sin", &args[0])
+            }
+            "cos" => {
+                if args.len() != 1 {
+                    return Err("cos函数需要一个参数".to_string());
+                }
+                self.evaluate_trigonometric_function("cos", &args[0])
+            }
+            "tan" => {
+                if args.len() != 1 {
+                    return Err("tan函数需要一个参数".to_string());
+                }
+                self.evaluate_trigonometric_function("tan", &args[0])
+            }
+            
+            // 反三角函数
+            "asin" | "arcsin" => {
+                if args.len() != 1 {
+                    return Err("asin函数需要一个参数".to_string());
+                }
+                self.evaluate_inverse_trigonometric_function("asin", &args[0])
+            }
+            "acos" | "arccos" => {
+                if args.len() != 1 {
+                    return Err("acos函数需要一个参数".to_string());
+                }
+                self.evaluate_inverse_trigonometric_function("acos", &args[0])
+            }
+            "atan" | "arctan" => {
+                if args.len() != 1 {
+                    return Err("atan函数需要一个参数".to_string());
+                }
+                self.evaluate_inverse_trigonometric_function("atan", &args[0])
+            }
+            
+            // 指数和对数函数
+            "exp" => {
+                if args.len() != 1 {
+                    return Err("exp函数需要一个参数".to_string());
+                }
+                self.evaluate_exponential_function(&args[0])
+            }
+            "ln" | "log" => {
+                if args.len() != 1 {
+                    return Err("ln函数需要一个参数".to_string());
+                }
+                self.evaluate_logarithm_function(&args[0])
+            }
+            "log10" => {
+                if args.len() != 1 {
+                    return Err("log10函数需要一个参数".to_string());
+                }
+                self.evaluate_log10_function(&args[0])
+            }
+            "log2" => {
+                if args.len() != 1 {
+                    return Err("log2函数需要一个参数".to_string());
+                }
+                self.evaluate_log2_function(&args[0])
+            }
+            
+            // 幂函数和根函数
+            "sqrt" => {
+                if args.len() != 1 {
+                    return Err("sqrt函数需要一个参数".to_string());
+                }
+                self.evaluate_sqrt_function(&args[0])
+            }
+            "pow" => {
+                if args.len() != 2 {
+                    return Err("pow函数需要两个参数".to_string());
+                }
+                self.evaluate_power_function(&args[0], &args[1])
+            }
+            
+            // 双曲函数
+            "sinh" => {
+                if args.len() != 1 {
+                    return Err("sinh函数需要一个参数".to_string());
+                }
+                self.evaluate_hyperbolic_function("sinh", &args[0])
+            }
+            "cosh" => {
+                if args.len() != 1 {
+                    return Err("cosh函数需要一个参数".to_string());
+                }
+                self.evaluate_hyperbolic_function("cosh", &args[0])
+            }
+            "tanh" => {
+                if args.len() != 1 {
+                    return Err("tanh函数需要一个参数".to_string());
+                }
+                self.evaluate_hyperbolic_function("tanh", &args[0])
+            }
+            
+            // 统计函数
             "max" => {
                 if args.is_empty() {
                     return Err("max函数需要至少一个参数".to_string());
@@ -1210,6 +1311,7 @@ impl Expression {
                 }
                 Ok(args[0].abs())
             }
+            
             // 对于其他函数，返回符号表示
             _ => {
                 Ok(Number::Symbolic(Box::new(Expression::Function {
@@ -1226,6 +1328,465 @@ impl Expression {
             Ok(num) => Some(num),
             Err(_) => None,
         }
+    }
+    
+    /// 求值三角函数
+    fn evaluate_trigonometric_function(&self, name: &str, arg: &Number) -> Result<Number, String> {
+        use super::MathConstant;
+        
+        // 检查特殊值
+        match arg {
+            Number::Integer(n) if n.is_zero() => {
+                match name {
+                    "sin" => return Ok(Number::Integer(num_bigint::BigInt::from(0))),
+                    "cos" => return Ok(Number::Integer(num_bigint::BigInt::from(1))),
+                    "tan" => return Ok(Number::Integer(num_bigint::BigInt::from(0))),
+                    _ => {}
+                }
+            }
+            _ => {}
+        }
+        
+        // 检查是否为数学常量
+        if let Number::Constant(c) = arg {
+            if let Some(result) = c.trigonometric_rule(name) {
+                match result {
+                    crate::core::Expression::Number(n) => return Ok(n),
+                    _ => return Ok(Number::Symbolic(Box::new(result))),
+                }
+            }
+        }
+        
+        // 检查是否为数学常量的倍数
+        if let Some(result) = self.evaluate_trig_constant_multiple(name, arg) {
+            return Ok(result);
+        }
+        
+        // 对于一般情况，返回符号表示
+        let unary_op = match name {
+            "sin" => UnaryOperator::Sin,
+            "cos" => UnaryOperator::Cos,
+            "tan" => UnaryOperator::Tan,
+            _ => return Err(format!("未知的三角函数: {}", name)),
+        };
+        
+        Ok(Number::Symbolic(Box::new(Expression::UnaryOp {
+            op: unary_op,
+            operand: Box::new(Expression::Number(arg.clone())),
+        })))
+    }
+    
+    /// 求值反三角函数
+    fn evaluate_inverse_trigonometric_function(&self, name: &str, arg: &Number) -> Result<Number, String> {
+        // 检查特殊值
+        match arg {
+            Number::Integer(n) if n.is_zero() => {
+                match name {
+                    "asin" | "atan" => return Ok(Number::Integer(num_bigint::BigInt::from(0))),
+                    _ => {}
+                }
+            }
+            Number::Integer(n) if n == &num_bigint::BigInt::from(1) => {
+                match name {
+                    "acos" => return Ok(Number::Integer(num_bigint::BigInt::from(0))),
+                    "asin" => return Ok(Number::Constant(MathConstant::Pi)),
+                    _ => {}
+                }
+            }
+            Number::Integer(n) if n == &num_bigint::BigInt::from(-1) => {
+                match name {
+                    "acos" => return Ok(Number::Constant(MathConstant::Pi)),
+                    "asin" => return Ok(Number::Symbolic(Box::new(Expression::UnaryOp {
+                        op: UnaryOperator::Negate,
+                        operand: Box::new(Expression::BinaryOp {
+                            op: BinaryOperator::Divide,
+                            left: Box::new(Expression::Constant(MathConstant::Pi)),
+                            right: Box::new(Expression::Number(Number::Integer(num_bigint::BigInt::from(2)))),
+                        }),
+                    }))),
+                    _ => {}
+                }
+            }
+            _ => {}
+        }
+        
+        // 对于一般情况，返回符号表示
+        let unary_op = match name {
+            "asin" => UnaryOperator::Asin,
+            "acos" => UnaryOperator::Acos,
+            "atan" => UnaryOperator::Atan,
+            _ => return Err(format!("未知的反三角函数: {}", name)),
+        };
+        
+        Ok(Number::Symbolic(Box::new(Expression::UnaryOp {
+            op: unary_op,
+            operand: Box::new(Expression::Number(arg.clone())),
+        })))
+    }
+    
+    /// 求值指数函数
+    fn evaluate_exponential_function(&self, arg: &Number) -> Result<Number, String> {
+        use super::MathConstant;
+        
+        // 检查特殊值
+        match arg {
+            Number::Integer(n) if n.is_zero() => {
+                return Ok(Number::Integer(num_bigint::BigInt::from(1)));
+            }
+            Number::Integer(n) if n == &num_bigint::BigInt::from(1) => {
+                return Ok(Number::Constant(MathConstant::E));
+            }
+            // exp(i*π) = -1 (欧拉公式)
+            Number::Symbolic(expr) => {
+                if let Expression::BinaryOp { op: BinaryOperator::Multiply, left, right } = expr.as_ref() {
+                    // 检查是否为 i*π 或 π*i 的形式
+                    let is_i_pi = match (left.as_ref(), right.as_ref()) {
+                        (Expression::Constant(MathConstant::I), Expression::Constant(MathConstant::Pi)) |
+                        (Expression::Constant(MathConstant::Pi), Expression::Constant(MathConstant::I)) => true,
+                        // 检查复数形式的虚数单位
+                        (Expression::Number(Number::Complex { real, imaginary }), Expression::Constant(MathConstant::Pi)) 
+                            if real.is_zero() && imaginary.is_one() => true,
+                        (Expression::Constant(MathConstant::Pi), Expression::Number(Number::Complex { real, imaginary })) 
+                            if real.is_zero() && imaginary.is_one() => true,
+                        // 检查符号表示的常量
+                        (Expression::Number(Number::Symbolic(inner_expr)), Expression::Constant(MathConstant::Pi)) => {
+                            matches!(inner_expr.as_ref(), Expression::Constant(MathConstant::I))
+                        }
+                        (Expression::Constant(MathConstant::Pi), Expression::Number(Number::Symbolic(inner_expr))) => {
+                            matches!(inner_expr.as_ref(), Expression::Constant(MathConstant::I))
+                        }
+                        _ => false,
+                    };
+                    
+                    if is_i_pi {
+                        return Ok(Number::Integer(num_bigint::BigInt::from(-1)));
+                    }
+                }
+            }
+            // 检查复数形式的 i*π
+            Number::Complex { real, imaginary } => {
+                if real.is_zero() && imaginary.is_one() {
+                    // 这是虚数单位 i，但我们需要检查是否乘以了 π
+                    // 这种情况在函数调用时处理
+                }
+            }
+            _ => {}
+        }
+        
+        // 对于一般情况，返回符号表示
+        Ok(Number::Symbolic(Box::new(Expression::UnaryOp {
+            op: UnaryOperator::Exp,
+            operand: Box::new(Expression::Number(arg.clone())),
+        })))
+    }
+    
+    /// 求值对数函数
+    fn evaluate_logarithm_function(&self, arg: &Number) -> Result<Number, String> {
+        use super::MathConstant;
+        
+        // 检查特殊值
+        match arg {
+            Number::Integer(n) if n == &num_bigint::BigInt::from(1) => {
+                return Ok(Number::Integer(num_bigint::BigInt::from(0)));
+            }
+            Number::Constant(MathConstant::E) => {
+                return Ok(Number::Integer(num_bigint::BigInt::from(1)));
+            }
+            Number::Integer(n) if n <= &num_bigint::BigInt::from(0) => {
+                return Err("对数函数的参数必须为正数".to_string());
+            }
+            // 检查符号表达式中的常量
+            Number::Symbolic(expr) => {
+                if let Expression::Constant(MathConstant::E) = expr.as_ref() {
+                    return Ok(Number::Integer(num_bigint::BigInt::from(1)));
+                }
+            }
+            _ => {}
+        }
+        
+        // 对于一般情况，返回符号表示
+        Ok(Number::Symbolic(Box::new(Expression::UnaryOp {
+            op: UnaryOperator::Ln,
+            operand: Box::new(Expression::Number(arg.clone())),
+        })))
+    }
+    
+    /// 求值常用对数函数
+    fn evaluate_log10_function(&self, arg: &Number) -> Result<Number, String> {
+        // 检查特殊值
+        match arg {
+            Number::Integer(n) if n == &num_bigint::BigInt::from(1) => {
+                return Ok(Number::Integer(num_bigint::BigInt::from(0)));
+            }
+            Number::Integer(n) if n == &num_bigint::BigInt::from(10) => {
+                return Ok(Number::Integer(num_bigint::BigInt::from(1)));
+            }
+            Number::Integer(n) if n <= &num_bigint::BigInt::from(0) => {
+                return Err("对数函数的参数必须为正数".to_string());
+            }
+            _ => {}
+        }
+        
+        // 对于一般情况，返回符号表示
+        Ok(Number::Symbolic(Box::new(Expression::UnaryOp {
+            op: UnaryOperator::Log10,
+            operand: Box::new(Expression::Number(arg.clone())),
+        })))
+    }
+    
+    /// 求值二进制对数函数
+    fn evaluate_log2_function(&self, arg: &Number) -> Result<Number, String> {
+        // 检查特殊值
+        match arg {
+            Number::Integer(n) if n == &num_bigint::BigInt::from(1) => {
+                return Ok(Number::Integer(num_bigint::BigInt::from(0)));
+            }
+            Number::Integer(n) if n == &num_bigint::BigInt::from(2) => {
+                return Ok(Number::Integer(num_bigint::BigInt::from(1)));
+            }
+            Number::Integer(n) if n <= &num_bigint::BigInt::from(0) => {
+                return Err("对数函数的参数必须为正数".to_string());
+            }
+            _ => {}
+        }
+        
+        // 对于一般情况，返回符号表示
+        Ok(Number::Symbolic(Box::new(Expression::UnaryOp {
+            op: UnaryOperator::Log2,
+            operand: Box::new(Expression::Number(arg.clone())),
+        })))
+    }
+    
+    /// 求值平方根函数
+    fn evaluate_sqrt_function(&self, arg: &Number) -> Result<Number, String> {
+        // 检查特殊值
+        match arg {
+            Number::Integer(n) if n.is_zero() => {
+                return Ok(Number::Integer(num_bigint::BigInt::from(0)));
+            }
+            Number::Integer(n) if n == &num_bigint::BigInt::from(1) => {
+                return Ok(Number::Integer(num_bigint::BigInt::from(1)));
+            }
+            Number::Integer(n) if n == &num_bigint::BigInt::from(4) => {
+                return Ok(Number::Integer(num_bigint::BigInt::from(2)));
+            }
+            Number::Integer(n) if n == &num_bigint::BigInt::from(9) => {
+                return Ok(Number::Integer(num_bigint::BigInt::from(3)));
+            }
+            Number::Integer(n) if n == &num_bigint::BigInt::from(16) => {
+                return Ok(Number::Integer(num_bigint::BigInt::from(4)));
+            }
+            Number::Integer(n) if n == &num_bigint::BigInt::from(25) => {
+                return Ok(Number::Integer(num_bigint::BigInt::from(5)));
+            }
+            Number::Integer(n) if n < &num_bigint::BigInt::from(0) => {
+                // 负数的平方根是复数
+                let abs_n = n.abs();
+                return Ok(Number::Complex {
+                    real: Box::new(Number::Integer(num_bigint::BigInt::from(0))),
+                    imaginary: Box::new(Number::Symbolic(Box::new(Expression::UnaryOp {
+                        op: UnaryOperator::Sqrt,
+                        operand: Box::new(Expression::Number(Number::Integer(abs_n))),
+                    }))),
+                });
+            }
+            _ => {}
+        }
+        
+        // 对于一般情况，返回符号表示
+        Ok(Number::Symbolic(Box::new(Expression::UnaryOp {
+            op: UnaryOperator::Sqrt,
+            operand: Box::new(Expression::Number(arg.clone())),
+        })))
+    }
+    
+    /// 求值幂函数
+    fn evaluate_power_function(&self, base: &Number, exponent: &Number) -> Result<Number, String> {
+        // 检查特殊情况
+        match (base, exponent) {
+            // 任何数的0次幂都是1
+            (_, Number::Integer(n)) if n.is_zero() => {
+                return Ok(Number::Integer(num_bigint::BigInt::from(1)));
+            }
+            // 任何数的1次幂都是它本身
+            (_, Number::Integer(n)) if n == &num_bigint::BigInt::from(1) => {
+                return Ok(base.clone());
+            }
+            // 0的正数次幂是0
+            (Number::Integer(n), _) if n.is_zero() && exponent.is_positive() => {
+                return Ok(Number::Integer(num_bigint::BigInt::from(0)));
+            }
+            // 1的任何次幂都是1
+            (Number::Integer(n), _) if n == &num_bigint::BigInt::from(1) => {
+                return Ok(Number::Integer(num_bigint::BigInt::from(1)));
+            }
+            // 整数的整数次幂
+            (Number::Integer(base_int), Number::Integer(exp_int)) => {
+                if exp_int >= &num_bigint::BigInt::from(0) {
+                    if let Some(exp_u32) = exp_int.to_u32() {
+                        return Ok(Number::Integer(base_int.pow(exp_u32)));
+                    }
+                }
+            }
+            _ => {}
+        }
+        
+        // 对于一般情况，返回符号表示
+        Ok(Number::Symbolic(Box::new(Expression::BinaryOp {
+            op: BinaryOperator::Power,
+            left: Box::new(Expression::Number(base.clone())),
+            right: Box::new(Expression::Number(exponent.clone())),
+        })))
+    }
+    
+    /// 求值双曲函数
+    fn evaluate_hyperbolic_function(&self, name: &str, arg: &Number) -> Result<Number, String> {
+        // 检查特殊值
+        match arg {
+            Number::Integer(n) if n.is_zero() => {
+                match name {
+                    "sinh" => return Ok(Number::Integer(num_bigint::BigInt::from(0))),
+                    "cosh" => return Ok(Number::Integer(num_bigint::BigInt::from(1))),
+                    "tanh" => return Ok(Number::Integer(num_bigint::BigInt::from(0))),
+                    _ => {}
+                }
+            }
+            _ => {}
+        }
+        
+        // 对于一般情况，返回符号表示
+        let unary_op = match name {
+            "sinh" => UnaryOperator::Sinh,
+            "cosh" => UnaryOperator::Cosh,
+            "tanh" => UnaryOperator::Tanh,
+            _ => return Err(format!("未知的双曲函数: {}", name)),
+        };
+        
+        Ok(Number::Symbolic(Box::new(Expression::UnaryOp {
+            op: unary_op,
+            operand: Box::new(Expression::Number(arg.clone())),
+        })))
+    }
+    
+    /// 求值三角函数的常量倍数
+    fn evaluate_trig_constant_multiple(&self, name: &str, arg: &Number) -> Option<Number> {
+        use super::MathConstant;
+        
+        // 检查是否为 π 的倍数
+        if let Number::Constant(MathConstant::Pi) = arg {
+            match name {
+                "sin" => return Some(Number::Integer(num_bigint::BigInt::from(0))),
+                "cos" => return Some(Number::Integer(num_bigint::BigInt::from(-1))),
+                "tan" => return Some(Number::Integer(num_bigint::BigInt::from(0))),
+                _ => {}
+            }
+        }
+        
+        // 检查符号表达式中的常量
+        if let Number::Symbolic(expr) = arg {
+            // 检查是否为常量
+            if let Expression::Constant(MathConstant::Pi) = expr.as_ref() {
+                match name {
+                    "sin" => return Some(Number::Integer(num_bigint::BigInt::from(0))),
+                    "cos" => return Some(Number::Integer(num_bigint::BigInt::from(-1))),
+                    "tan" => return Some(Number::Integer(num_bigint::BigInt::from(0))),
+                    _ => {}
+                }
+            }
+            
+            // 检查是否为 π/2 的倍数
+            if let Expression::BinaryOp { op: BinaryOperator::Divide, left, right } = expr.as_ref() {
+                if let (Expression::Constant(MathConstant::Pi), Expression::Number(Number::Integer(n))) = 
+                    (left.as_ref(), right.as_ref()) {
+                    if n == &num_bigint::BigInt::from(2) {
+                        match name {
+                            "sin" => return Some(Number::Integer(num_bigint::BigInt::from(1))),
+                            "cos" => return Some(Number::Integer(num_bigint::BigInt::from(0))),
+                            // tan(π/2) 是未定义的
+                            "tan" => return Some(Number::Constant(MathConstant::Undefined)),
+                            _ => {}
+                        }
+                    } else if n == &num_bigint::BigInt::from(4) {
+                        // π/4 的三角函数值
+                        match name {
+                            "sin" | "cos" => {
+                                // sin(π/4) = cos(π/4) = √2/2
+                                return Some(Number::Symbolic(Box::new(Expression::BinaryOp {
+                                    op: BinaryOperator::Divide,
+                                    left: Box::new(Expression::UnaryOp {
+                                        op: UnaryOperator::Sqrt,
+                                        operand: Box::new(Expression::Number(Number::Integer(num_bigint::BigInt::from(2)))),
+                                    }),
+                                    right: Box::new(Expression::Number(Number::Integer(num_bigint::BigInt::from(2)))),
+                                })));
+                            }
+                            "tan" => return Some(Number::Integer(num_bigint::BigInt::from(1))),
+                            _ => {}
+                        }
+                    } else if n == &num_bigint::BigInt::from(6) {
+                        // π/6 的三角函数值
+                        match name {
+                            "sin" => return Some(Number::Rational(num_rational::BigRational::new(
+                                num_bigint::BigInt::from(1), 
+                                num_bigint::BigInt::from(2)
+                            ))),
+                            "cos" => {
+                                // cos(π/6) = √3/2
+                                return Some(Number::Symbolic(Box::new(Expression::BinaryOp {
+                                    op: BinaryOperator::Divide,
+                                    left: Box::new(Expression::UnaryOp {
+                                        op: UnaryOperator::Sqrt,
+                                        operand: Box::new(Expression::Number(Number::Integer(num_bigint::BigInt::from(3)))),
+                                    }),
+                                    right: Box::new(Expression::Number(Number::Integer(num_bigint::BigInt::from(2)))),
+                                })));
+                            }
+                            "tan" => {
+                                // tan(π/6) = √3/3
+                                return Some(Number::Symbolic(Box::new(Expression::BinaryOp {
+                                    op: BinaryOperator::Divide,
+                                    left: Box::new(Expression::UnaryOp {
+                                        op: UnaryOperator::Sqrt,
+                                        operand: Box::new(Expression::Number(Number::Integer(num_bigint::BigInt::from(3)))),
+                                    }),
+                                    right: Box::new(Expression::Number(Number::Integer(num_bigint::BigInt::from(3)))),
+                                })));
+                            }
+                            _ => {}
+                        }
+                    } else if n == &num_bigint::BigInt::from(3) {
+                        // π/3 的三角函数值
+                        match name {
+                            "sin" => {
+                                // sin(π/3) = √3/2
+                                return Some(Number::Symbolic(Box::new(Expression::BinaryOp {
+                                    op: BinaryOperator::Divide,
+                                    left: Box::new(Expression::UnaryOp {
+                                        op: UnaryOperator::Sqrt,
+                                        operand: Box::new(Expression::Number(Number::Integer(num_bigint::BigInt::from(3)))),
+                                    }),
+                                    right: Box::new(Expression::Number(Number::Integer(num_bigint::BigInt::from(2)))),
+                                })));
+                            }
+                            "cos" => return Some(Number::Rational(num_rational::BigRational::new(
+                                num_bigint::BigInt::from(1), 
+                                num_bigint::BigInt::from(2)
+                            ))),
+                            "tan" => {
+                                // tan(π/3) = √3
+                                return Some(Number::Symbolic(Box::new(Expression::UnaryOp {
+                                    op: UnaryOperator::Sqrt,
+                                    operand: Box::new(Expression::Number(Number::Integer(num_bigint::BigInt::from(3)))),
+                                })));
+                            }
+                            _ => {}
+                        }
+                    }
+                }
+            }
+        }
+        
+        None
     }
     
     /// 检查表达式是否可以求值为数值
@@ -1347,3 +1908,7 @@ impl Display for Expression {
 #[cfg(test)]
 #[path = "expression_tests.rs"]
 mod expression_tests;
+
+#[cfg(test)]
+#[path = "function_tests.rs"]
+mod function_tests;

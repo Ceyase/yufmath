@@ -23,6 +23,8 @@ pub enum Number {
         real: Box<Number>,
         imaginary: Box<Number>,
     },
+    /// 数学常量
+    Constant(crate::core::MathConstant),
     /// 符号表示（用于无法精确计算的数值）
     Symbolic(Box<crate::core::Expression>),
     /// 浮点数（仅在明确要求数值近似时使用）
@@ -86,6 +88,7 @@ impl Number {
             Number::Real(r) => r.is_zero(),
             Number::Complex { real, imaginary } => real.is_zero() && imaginary.is_zero(),
             Number::Float(f) => *f == 0.0,
+            Number::Constant(_) => false,
             Number::Symbolic(_) => false,
         }
     }
@@ -98,6 +101,7 @@ impl Number {
             Number::Real(r) => r == &BigDecimal::from(1),
             Number::Float(f) => *f == 1.0,
             Number::Complex { real, imaginary } => real.is_one() && imaginary.is_zero(),
+            Number::Constant(_) => false,
             Number::Symbolic(_) => false,
         }
     }
@@ -114,6 +118,7 @@ impl Number {
                 let i = imaginary.approximate();
                 (r * r + i * i).sqrt()
             }
+            Number::Constant(c) => c.approximate_value(),
             Number::Symbolic(_) => f64::NAN,
             Number::Float(f) => *f,
         }
@@ -218,6 +223,7 @@ impl Display for Number {
                     }
                 }
             }
+            Number::Constant(c) => write!(f, "{}", c.symbol()),
             Number::Symbolic(expr) => write!(f, "{}", expr),
             Number::Float(fl) => write!(f, "{}", fl),
         }
@@ -256,6 +262,7 @@ impl Number {
             Number::Real(r) => r < &BigDecimal::from(0),
             Number::Float(f) => *f < 0.0,
             Number::Complex { .. } => false, // 复数没有正负概念
+            Number::Constant(c) => c.approximate_value() < 0.0,
             Number::Symbolic(_) => false, // 符号表达式无法确定
         }
     }
@@ -268,6 +275,7 @@ impl Number {
             Number::Real(r) => r > &BigDecimal::from(0),
             Number::Float(f) => *f > 0.0,
             Number::Complex { .. } => false, // 复数没有正负概念
+            Number::Constant(c) => c.approximate_value() > 0.0,
             Number::Symbolic(_) => false, // 符号表达式无法确定
         }
     }
@@ -289,6 +297,7 @@ impl Number {
             Number::Complex { real, imaginary } => {
                 imaginary.is_zero() && real.is_integer()
             }
+            Number::Constant(_) => false,
             Number::Symbolic(_) => false,
         }
     }
@@ -300,6 +309,7 @@ impl Number {
             Number::Complex { real, imaginary } => {
                 imaginary.is_zero() && real.is_rational()
             }
+            Number::Constant(_) => false,
             _ => false,
         }
     }
@@ -309,6 +319,7 @@ impl Number {
         match self {
             Number::Integer(_) | Number::Rational(_) | Number::Real(_) | Number::Float(_) => true,
             Number::Complex { imaginary, .. } => imaginary.is_zero(),
+            Number::Constant(c) => c.is_real(),
             Number::Symbolic(_) => false,
         }
     }
@@ -362,6 +373,10 @@ impl Number {
                     }),
                 }))
             }
+            Number::Constant(_) => Number::Symbolic(Box::new(crate::core::Expression::UnaryOp {
+                op: crate::core::UnaryOperator::Abs,
+                operand: Box::new(crate::core::Expression::Number(self.clone())),
+            })),
             Number::Symbolic(_) => Number::Symbolic(Box::new(crate::core::Expression::UnaryOp {
                 op: crate::core::UnaryOperator::Abs,
                 operand: Box::new(crate::core::Expression::Number(self.clone())),
@@ -380,6 +395,10 @@ impl Number {
                 real: Box::new(real.clone().neg()),
                 imaginary: Box::new(imaginary.clone().neg()),
             },
+            Number::Constant(_) => Number::Symbolic(Box::new(crate::core::Expression::UnaryOp {
+                op: crate::core::UnaryOperator::Negate,
+                operand: Box::new(crate::core::Expression::Number(self.clone())),
+            })),
             Number::Symbolic(expr) => Number::Symbolic(Box::new(crate::core::Expression::UnaryOp {
                 op: crate::core::UnaryOperator::Negate,
                 operand: expr.clone(),
@@ -435,6 +454,13 @@ impl Number {
             Number::Real(_) => crate::core::NumericType::Real,
             Number::Float(_) => crate::core::NumericType::Float,
             Number::Complex { .. } => crate::core::NumericType::Complex,
+            Number::Constant(c) => {
+                if c.is_complex() {
+                    crate::core::NumericType::Complex
+                } else {
+                    crate::core::NumericType::Real
+                }
+            }
             Number::Symbolic(_) => crate::core::NumericType::Real, // 符号表达式默认为实数类型
         }
     }
@@ -712,6 +738,10 @@ impl Neg for Number {
                 real: Box::new(-*real),
                 imaginary: Box::new(-*imaginary),
             },
+            Number::Constant(_) => Number::Symbolic(Box::new(crate::core::Expression::UnaryOp {
+                op: crate::core::UnaryOperator::Negate,
+                operand: Box::new(crate::core::Expression::Number(self)),
+            })),
             Number::Symbolic(expr) => Number::Symbolic(Box::new(crate::core::Expression::UnaryOp {
                 op: crate::core::UnaryOperator::Negate,
                 operand: expr,
