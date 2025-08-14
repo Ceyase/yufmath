@@ -10,6 +10,9 @@ pub mod error;
 #[cfg(test)]
 mod lexer_tests;
 
+#[cfg(test)]
+mod syntax_tests;
+
 use crate::core::Expression;
 pub use error::ParseError;
 
