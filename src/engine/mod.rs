@@ -11,7 +11,7 @@ pub mod error;
 
 use std::collections::HashMap;
 use crate::core::{Expression, Number, MathConstant};
-pub use error::ComputeError;
+pub use error::{ComputeError, ErrorSeverity};
 
 /// 计算引擎 trait
 pub trait ComputeEngine {
