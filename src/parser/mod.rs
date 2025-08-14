@@ -7,6 +7,9 @@ pub mod lexer;
 pub mod syntax;
 pub mod error;
 
+#[cfg(test)]
+mod lexer_tests;
+
 use crate::core::Expression;
 pub use error::ParseError;
 
