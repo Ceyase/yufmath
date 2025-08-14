@@ -427,6 +427,18 @@ impl Number {
         }
     }
     
+    /// 获取数值的类型
+    pub fn get_numeric_type(&self) -> crate::core::NumericType {
+        match self {
+            Number::Integer(_) => crate::core::NumericType::Integer,
+            Number::Rational(_) => crate::core::NumericType::Rational,
+            Number::Real(_) => crate::core::NumericType::Real,
+            Number::Float(_) => crate::core::NumericType::Float,
+            Number::Complex { .. } => crate::core::NumericType::Complex,
+            Number::Symbolic(_) => crate::core::NumericType::Real, // 符号表达式默认为实数类型
+        }
+    }
+    
     /// 类型提升：将两个数值提升到相同的类型
     pub fn promote_types(a: &Number, b: &Number) -> (Number, Number) {
         match (a, b) {
