@@ -8,6 +8,7 @@ pub mod simplify;
 pub mod calculus;
 pub mod algebra;
 pub mod polynomial;
+pub mod number_theory;
 pub mod error;
 
 use std::collections::HashMap;
@@ -52,4 +53,33 @@ pub trait ComputeEngine {
     
     /// 多项式最大公约数
     fn polynomial_gcd(&self, a: &Expression, b: &Expression) -> Result<Expression, ComputeError>;
+    
+    // 数论和组合数学功能
+    
+    /// 计算最大公约数
+    fn gcd(&self, a: &Expression, b: &Expression) -> Result<Expression, ComputeError>;
+    
+    /// 计算最小公倍数
+    fn lcm(&self, a: &Expression, b: &Expression) -> Result<Expression, ComputeError>;
+    
+    /// 判断是否为素数
+    fn is_prime(&self, n: &Expression) -> Result<bool, ComputeError>;
+    
+    /// 质因数分解
+    fn prime_factors(&self, n: &Expression) -> Result<Vec<Expression>, ComputeError>;
+    
+    /// 计算二项式系数
+    fn binomial(&self, n: &Expression, k: &Expression) -> Result<Expression, ComputeError>;
+    
+    /// 计算排列数
+    fn permutation(&self, n: &Expression, k: &Expression) -> Result<Expression, ComputeError>;
+    
+    /// 计算平均值
+    fn mean(&self, values: &[Expression]) -> Result<Expression, ComputeError>;
+    
+    /// 计算方差
+    fn variance(&self, values: &[Expression]) -> Result<Expression, ComputeError>;
+    
+    /// 计算标准差
+    fn standard_deviation(&self, values: &[Expression]) -> Result<Expression, ComputeError>;
 }

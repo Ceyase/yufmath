@@ -7,6 +7,7 @@ use crate::core::{Expression, Number, MathConstant};
 use super::{ComputeEngine, ComputeError};
 use super::simplify::Simplifier;
 use super::polynomial::PolynomialEngine;
+use super::number_theory::NumberTheoryEngine;
 
 /// 基础计算引擎实现
 pub struct BasicComputeEngine {
@@ -14,6 +15,8 @@ pub struct BasicComputeEngine {
     simplifier: std::cell::RefCell<Simplifier>,
     /// 多项式运算引擎
     polynomial_engine: PolynomialEngine,
+    /// 数论和组合数学引擎
+    number_theory_engine: NumberTheoryEngine,
 }
 
 impl BasicComputeEngine {
@@ -22,6 +25,7 @@ impl BasicComputeEngine {
         Self {
             simplifier: std::cell::RefCell::new(Simplifier::new()),
             polynomial_engine: PolynomialEngine::new(),
+            number_theory_engine: NumberTheoryEngine::new(),
         }
     }
 }
@@ -75,5 +79,43 @@ impl ComputeEngine for BasicComputeEngine {
     
     fn polynomial_gcd(&self, a: &Expression, b: &Expression) -> Result<Expression, ComputeError> {
         self.polynomial_engine.polynomial_gcd(a, b)
+    }
+    
+    // 数论和组合数学功能实现
+    
+    fn gcd(&self, a: &Expression, b: &Expression) -> Result<Expression, ComputeError> {
+        self.number_theory_engine.gcd(a, b)
+    }
+    
+    fn lcm(&self, a: &Expression, b: &Expression) -> Result<Expression, ComputeError> {
+        self.number_theory_engine.lcm(a, b)
+    }
+    
+    fn is_prime(&self, n: &Expression) -> Result<bool, ComputeError> {
+        self.number_theory_engine.is_prime(n)
+    }
+    
+    fn prime_factors(&self, n: &Expression) -> Result<Vec<Expression>, ComputeError> {
+        self.number_theory_engine.prime_factors(n)
+    }
+    
+    fn binomial(&self, n: &Expression, k: &Expression) -> Result<Expression, ComputeError> {
+        self.number_theory_engine.binomial(n, k)
+    }
+    
+    fn permutation(&self, n: &Expression, k: &Expression) -> Result<Expression, ComputeError> {
+        self.number_theory_engine.permutation(n, k)
+    }
+    
+    fn mean(&self, values: &[Expression]) -> Result<Expression, ComputeError> {
+        self.number_theory_engine.mean(values)
+    }
+    
+    fn variance(&self, values: &[Expression]) -> Result<Expression, ComputeError> {
+        self.number_theory_engine.variance(values)
+    }
+    
+    fn standard_deviation(&self, values: &[Expression]) -> Result<Expression, ComputeError> {
+        self.number_theory_engine.standard_deviation(values)
     }
 }
