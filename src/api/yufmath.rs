@@ -6,7 +6,7 @@ use std::collections::HashMap;
 use crate::core::{Expression, Number};
 use crate::parser::{Parser, ParseError};
 use crate::engine::{ComputeEngine, ComputeError, compute::BasicComputeEngine};
-use crate::formatter::{Formatter, FormatOptions};
+use crate::formatter::{Formatter, FormatOptions, MultiFormatter};
 use super::{YufmathError, ComputeConfig, PerformanceMonitor};
 
 /// Yufmath 库的主要入口点
@@ -21,11 +21,10 @@ pub struct Yufmath {
 impl Yufmath {
     /// 创建新的 Yufmath 实例
     pub fn new() -> Self {
-        // 临时实现，仅用于测试求导功能
         Self {
             parser: Box::new(DummyParser),
             engine: Box::new(BasicComputeEngine::new()),
-            formatter: Box::new(DummyFormatter),
+            formatter: Box::new(MultiFormatter::new()),
             monitor: PerformanceMonitor::new(),
             config: ComputeConfig::default(),
         }
@@ -122,14 +121,3 @@ impl Parser for DummyParser {
     }
 }
 
-struct DummyFormatter;
-
-impl Formatter for DummyFormatter {
-    fn format(&self, _expr: &Expression) -> String {
-        "临时格式化器未实现".to_string()
-    }
-    
-    fn set_options(&mut self, _options: FormatOptions) {
-        // 临时实现，什么都不做
-    }
-}
