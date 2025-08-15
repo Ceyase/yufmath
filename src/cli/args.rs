@@ -70,6 +70,53 @@ pub enum Commands {
         /// 积分变量
         variable: String,
     },
+    /// 求解方程
+    Solve {
+        /// 要求解的方程
+        equation: String,
+        /// 求解变量
+        variable: String,
+    },
+    /// 因式分解
+    Factor {
+        /// 要分解的表达式
+        expression: String,
+    },
+    /// 展开表达式
+    Expand {
+        /// 要展开的表达式
+        expression: String,
+    },
+    /// 计算极限
+    Limit {
+        /// 表达式
+        expression: String,
+        /// 变量
+        variable: String,
+        /// 趋向点
+        point: String,
+    },
+    /// 级数展开
+    Series {
+        /// 表达式
+        expression: String,
+        /// 变量
+        variable: String,
+        /// 展开点
+        point: String,
+        /// 展开阶数
+        #[arg(short, long, default_value = "5")]
+        order: usize,
+    },
+    /// 批处理模式
+    Batch {
+        /// 输入文件路径
+        #[arg(short, long)]
+        input: String,
+        /// 输出文件路径（可选）
+        #[arg(short, long)]
+        output: Option<String>,
+    },
     /// 启动交互模式
     Interactive,
 }
