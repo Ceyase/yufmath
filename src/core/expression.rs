@@ -2087,6 +2087,66 @@ impl Display for Expression {
     }
 }
 
+// 手动实现 Eq trait
+impl Eq for Expression {}
+
+// 手动实现 Hash trait
+impl std::hash::Hash for Expression {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        use std::hash::Hash;
+        
+        match self {
+            Expression::Number(n) => {
+                0u8.hash(state);
+                n.hash(state);
+            }
+            Expression::Variable(name) => {
+                1u8.hash(state);
+                name.hash(state);
+            }
+            Expression::Constant(c) => {
+                2u8.hash(state);
+                c.hash(state);
+            }
+            Expression::BinaryOp { op, left, right } => {
+                3u8.hash(state);
+                op.hash(state);
+                left.hash(state);
+                right.hash(state);
+            }
+            Expression::UnaryOp { op, operand } => {
+                4u8.hash(state);
+                op.hash(state);
+                operand.hash(state);
+            }
+            Expression::Function { name, args } => {
+                5u8.hash(state);
+                name.hash(state);
+                args.hash(state);
+            }
+            Expression::Matrix(rows) => {
+                6u8.hash(state);
+                rows.hash(state);
+            }
+            Expression::Vector(elements) => {
+                7u8.hash(state);
+                elements.hash(state);
+            }
+            Expression::Set(elements) => {
+                8u8.hash(state);
+                elements.hash(state);
+            }
+            Expression::Interval { start, end, start_inclusive, end_inclusive } => {
+                9u8.hash(state);
+                start.hash(state);
+                end.hash(state);
+                start_inclusive.hash(state);
+                end_inclusive.hash(state);
+            }
+        }
+    }
+}
+
 // 包含测试模块
 #[cfg(test)]
 #[path = "expression_tests.rs"]

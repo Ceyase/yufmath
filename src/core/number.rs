@@ -642,9 +642,15 @@ impl Mul for Number {
                 // (a + bi)(c + di) = (ac - bd) + (ad + bc)i
                 let real_part = (*real_a.clone() * *real_b.clone()) - (*imag_a.clone() * *imag_b.clone());
                 let imag_part = (*real_a * *imag_b) + (*imag_a * *real_b);
-                Number::Complex {
-                    real: Box::new(real_part),
-                    imaginary: Box::new(imag_part),
+                
+                // 如果虚部为0，返回实数
+                if imag_part.is_zero() {
+                    real_part
+                } else {
+                    Number::Complex {
+                        real: Box::new(real_part),
+                        imaginary: Box::new(imag_part),
+                    }
                 }
             }
             // 对于无法精确计算的情况，返回符号表示
@@ -780,6 +786,50 @@ impl Div<&Number> for &Number {
 
     fn div(self, other: &Number) -> Number {
         self.clone() / other.clone()
+    }
+}
+
+// 手动实现 Eq trait
+impl Eq for Number {}
+
+// 手动实现 Hash trait
+impl std::hash::Hash for Number {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        use std::hash::Hash;
+        
+        match self {
+            Number::Integer(i) => {
+                0u8.hash(state);
+                i.hash(state);
+            }
+            Number::Rational(r) => {
+                1u8.hash(state);
+                r.hash(state);
+            }
+            Number::Real(r) => {
+                2u8.hash(state);
+                // BigDecimal 不实现 Hash，我们使用其字符串表示
+                r.to_string().hash(state);
+            }
+            Number::Float(f) => {
+                3u8.hash(state);
+                // f64 不实现 Hash，我们使用其位表示
+                f.to_bits().hash(state);
+            }
+            Number::Complex { real, imaginary } => {
+                4u8.hash(state);
+                real.hash(state);
+                imaginary.hash(state);
+            }
+            Number::Constant(c) => {
+                5u8.hash(state);
+                c.hash(state);
+            }
+            Number::Symbolic(expr) => {
+                6u8.hash(state);
+                expr.hash(state);
+            }
+        }
     }
 }
 

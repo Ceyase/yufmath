@@ -5,21 +5,26 @@
 use std::collections::HashMap;
 use crate::core::{Expression, Number, MathConstant};
 use super::{ComputeEngine, ComputeError};
+use super::simplify::Simplifier;
 
 /// 基础计算引擎实现
-pub struct BasicComputeEngine;
+pub struct BasicComputeEngine {
+    /// 表达式简化器
+    simplifier: std::cell::RefCell<Simplifier>,
+}
 
 impl BasicComputeEngine {
     /// 创建新的计算引擎
     pub fn new() -> Self {
-        Self
+        Self {
+            simplifier: std::cell::RefCell::new(Simplifier::new()),
+        }
     }
 }
 
 impl ComputeEngine for BasicComputeEngine {
-    fn simplify(&self, _expr: &Expression) -> Result<Expression, ComputeError> {
-        // 占位符实现，将在后续任务中完成
-        todo!("简化功能将在后续任务中实现")
+    fn simplify(&self, expr: &Expression) -> Result<Expression, ComputeError> {
+        self.simplifier.borrow_mut().simplify(expr)
     }
     
     fn evaluate(&self, _expr: &Expression, _vars: &HashMap<String, Number>) -> Result<Number, ComputeError> {
