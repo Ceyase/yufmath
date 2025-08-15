@@ -23,6 +23,9 @@ thiserror = "1.0"
 # 命令行工具
 clap = { version = "4.0", features = ["derive"] }
 
+# 交互式输入支持
+rustyline = "13.0"
+
 [dev-dependencies]
 # 性能基准测试
 criterion = { version = "0.5", features = ["html_reports"] }
