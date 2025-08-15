@@ -32,6 +32,18 @@ pub trait ComputeEngine {
     fn integrate(&self, expr: &Expression, var: &str) 
         -> Result<Expression, ComputeError>;
     
+    /// 计算极限
+    fn limit(&self, expr: &Expression, var: &str, point: &Expression) 
+        -> Result<Expression, ComputeError>;
+    
+    /// 级数展开
+    fn series(&self, expr: &Expression, var: &str, point: &Expression, order: usize) 
+        -> Result<Expression, ComputeError>;
+    
+    /// 数值计算
+    fn numerical_evaluate(&self, expr: &Expression, vars: &HashMap<String, f64>) 
+        -> Result<f64, ComputeError>;
+    
     /// 将数学常量转换为数值
     fn constant_to_number(&self, constant: &MathConstant) -> Result<Number, ComputeError>;
     

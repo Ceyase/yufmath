@@ -52,6 +52,18 @@ impl ComputeEngine for BasicComputeEngine {
         self.calculus_engine.integrate(expr, var)
     }
     
+    fn limit(&self, expr: &Expression, var: &str, point: &Expression) -> Result<Expression, ComputeError> {
+        self.calculus_engine.limit(expr, var, point)
+    }
+    
+    fn series(&self, expr: &Expression, var: &str, point: &Expression, order: usize) -> Result<Expression, ComputeError> {
+        self.calculus_engine.series(expr, var, point, order)
+    }
+    
+    fn numerical_evaluate(&self, expr: &Expression, vars: &HashMap<String, f64>) -> Result<f64, ComputeError> {
+        self.calculus_engine.numerical_evaluate(expr, vars)
+    }
+    
     fn constant_to_number(&self, _constant: &MathConstant) -> Result<Number, ComputeError> {
         // 占位符实现，将在后续任务中完成
         todo!("常量转换功能将在后续任务中实现")

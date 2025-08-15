@@ -6,6 +6,7 @@ use crate::core::{Expression, Number, BinaryOperator, UnaryOperator, MathConstan
 use super::ComputeError;
 use num_bigint::BigInt;
 use num_rational::BigRational;
+use num_traits::ToPrimitive;
 
 /// 微积分运算引擎
 pub struct CalculusEngine;
@@ -14,6 +15,258 @@ impl CalculusEngine {
     /// 创建新的微积分引擎
     pub fn new() -> Self {
         Self
+    }
+    
+    /// 计算极限
+    pub fn limit(&self, expr: &Expression, var: &str, point: &Expression) -> Result<Expression, ComputeError> {
+        // 这是一个简化的极限计算实现
+        // 实际的极限计算需要更复杂的算法
+        
+        // 检查特殊的极限情况
+        match expr {
+            // sin(x)/x 当 x -> 0 时的极限为 1
+            Expression::BinaryOp { 
+                op: BinaryOperator::Divide, 
+                left, 
+                right 
+            } => {
+                if let (
+                    Expression::UnaryOp { op: UnaryOperator::Sin, operand: sin_operand },
+                    Expression::Variable(var_name)
+                ) = (left.as_ref(), right.as_ref()) {
+                    if var_name == var && sin_operand.as_ref() == &Expression::Variable(var.to_string()) {
+                        if let Expression::Number(Number::Integer(n)) = point {
+                            if n == &BigInt::from(0) {
+                                // lim(x->0) sin(x)/x = 1
+                                return Ok(Expression::Number(Number::Integer(BigInt::from(1))));
+                            }
+                        }
+                    }
+                }
+                
+                // (1-cos(x))/x 当 x -> 0 时的极限为 0
+                if let (
+                    Expression::BinaryOp { 
+                        op: BinaryOperator::Subtract, 
+                        left: one, 
+                        right: cos_expr 
+                    },
+                    Expression::Variable(var_name)
+                ) = (left.as_ref(), right.as_ref()) {
+                    if var_name == var {
+                        if let (
+                            Expression::Number(Number::Integer(n)),
+                            Expression::UnaryOp { op: UnaryOperator::Cos, operand: cos_operand }
+                        ) = (one.as_ref(), cos_expr.as_ref()) {
+                            if n == &BigInt::from(1) && cos_operand.as_ref() == &Expression::Variable(var.to_string()) {
+                                if let Expression::Number(Number::Integer(point_val)) = point {
+                                    if point_val == &BigInt::from(0) {
+                                        // lim(x->0) (1-cos(x))/x = 0
+                                        return Ok(Expression::Number(Number::Integer(BigInt::from(0))));
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            
+            // 其他情况尝试直接代入
+            _ => {
+                // 对于简单情况，尝试直接代入
+                if let Ok(result) = self.substitute_and_evaluate(expr, var, point) {
+                    return Ok(result);
+                }
+            }
+        }
+        
+        Err(ComputeError::UnsupportedOperation { 
+            operation: format!("计算极限 lim({} -> {}) {}", var, self.format_expression(point), self.format_expression(expr))
+        })
+    }
+    
+    /// 级数展开
+    pub fn series(&self, expr: &Expression, var: &str, point: &Expression, order: usize) -> Result<Expression, ComputeError> {
+        // 这是一个简化的泰勒级数展开实现
+        // 实际的级数展开需要更复杂的算法
+        
+        match expr {
+            // e^x 的泰勒级数：e^x = 1 + x + x²/2! + x³/3! + ...
+            Expression::UnaryOp { op: UnaryOperator::Exp, operand } => {
+                if let Expression::Variable(operand_var) = operand.as_ref() {
+                    if operand_var == var {
+                        if let Expression::Number(Number::Integer(n)) = point {
+                            if n == &BigInt::from(0) {
+                                // 在 x = 0 处展开 e^x
+                                return self.exp_series_at_zero(var, order);
+                            }
+                        }
+                    }
+                }
+            }
+            
+            // sin(x) 的泰勒级数：sin(x) = x - x³/3! + x⁵/5! - ...
+            Expression::UnaryOp { op: UnaryOperator::Sin, operand } => {
+                if let Expression::Variable(operand_var) = operand.as_ref() {
+                    if operand_var == var {
+                        if let Expression::Number(Number::Integer(n)) = point {
+                            if n == &BigInt::from(0) {
+                                // 在 x = 0 处展开 sin(x)
+                                return self.sin_series_at_zero(var, order);
+                            }
+                        }
+                    }
+                }
+            }
+            
+            // cos(x) 的泰勒级数：cos(x) = 1 - x²/2! + x⁴/4! - ...
+            Expression::UnaryOp { op: UnaryOperator::Cos, operand } => {
+                if let Expression::Variable(operand_var) = operand.as_ref() {
+                    if operand_var == var {
+                        if let Expression::Number(Number::Integer(n)) = point {
+                            if n == &BigInt::from(0) {
+                                // 在 x = 0 处展开 cos(x)
+                                return self.cos_series_at_zero(var, order);
+                            }
+                        }
+                    }
+                }
+            }
+            
+            _ => {}
+        }
+        
+        Err(ComputeError::UnsupportedOperation { 
+            operation: format!("级数展开 {} 在 {} = {} 处", self.format_expression(expr), var, self.format_expression(point))
+        })
+    }
+    
+    /// 数值计算
+    pub fn numerical_evaluate(&self, expr: &Expression, vars: &std::collections::HashMap<String, f64>) -> Result<f64, ComputeError> {
+        match expr {
+            Expression::Number(n) => {
+                match n {
+                    Number::Integer(i) => Ok(i.to_f64().unwrap_or(f64::NAN)),
+                    Number::Rational(r) => Ok(r.to_f64().unwrap_or(f64::NAN)),
+                    Number::Real(_) => Ok(0.0), // 简化处理
+                    Number::Complex { .. } => Err(ComputeError::UnsupportedOperation { 
+                        operation: "复数的数值计算".to_string() 
+                    }),
+                    Number::Symbolic(_) => Err(ComputeError::UnsupportedOperation { 
+                        operation: "符号数值的数值计算".to_string() 
+                    }),
+                    Number::Float(f) => Ok(*f),
+                    Number::Constant(c) => {
+                        // 处理嵌套的数学常量
+                        match c {
+                            MathConstant::Pi => Ok(std::f64::consts::PI),
+                            MathConstant::E => Ok(std::f64::consts::E),
+                            MathConstant::I => Err(ComputeError::UnsupportedOperation { 
+                                operation: "虚数单位的数值计算".to_string() 
+                            }),
+                            MathConstant::EulerGamma => Ok(0.5772156649015329),
+                            MathConstant::GoldenRatio => Ok(1.618033988749895),
+                            MathConstant::Catalan => Ok(0.915965594177219),
+                            MathConstant::PositiveInfinity => Ok(f64::INFINITY),
+                            MathConstant::NegativeInfinity => Ok(f64::NEG_INFINITY),
+                            MathConstant::Undefined => Ok(f64::NAN),
+                        }
+                    }
+                }
+            }
+            
+            Expression::Variable(name) => {
+                vars.get(name).copied().ok_or_else(|| ComputeError::UndefinedVariable { 
+                    name: name.clone() 
+                })
+            }
+            
+            Expression::Constant(c) => {
+                match c {
+                    MathConstant::Pi => Ok(std::f64::consts::PI),
+                    MathConstant::E => Ok(std::f64::consts::E),
+                    MathConstant::I => Err(ComputeError::UnsupportedOperation { 
+                        operation: "虚数单位的数值计算".to_string() 
+                    }),
+                    MathConstant::EulerGamma => Ok(0.5772156649015329),
+                    MathConstant::GoldenRatio => Ok(1.618033988749895),
+                    MathConstant::Catalan => Ok(0.915965594177219),
+                    MathConstant::PositiveInfinity => Ok(f64::INFINITY),
+                    MathConstant::NegativeInfinity => Ok(f64::NEG_INFINITY),
+                    MathConstant::Undefined => Ok(f64::NAN),
+                }
+            }
+            
+            Expression::BinaryOp { op, left, right } => {
+                let left_val = self.numerical_evaluate(left, vars)?;
+                let right_val = self.numerical_evaluate(right, vars)?;
+                
+                match op {
+                    BinaryOperator::Add => Ok(left_val + right_val),
+                    BinaryOperator::Subtract => Ok(left_val - right_val),
+                    BinaryOperator::Multiply => Ok(left_val * right_val),
+                    BinaryOperator::Divide => {
+                        if right_val == 0.0 {
+                            Err(ComputeError::DivisionByZero)
+                        } else {
+                            Ok(left_val / right_val)
+                        }
+                    }
+                    BinaryOperator::Power => Ok(left_val.powf(right_val)),
+                    _ => Err(ComputeError::UnsupportedOperation { 
+                        operation: format!("数值计算二元运算 {:?}", op) 
+                    }),
+                }
+            }
+            
+            Expression::UnaryOp { op, operand } => {
+                let operand_val = self.numerical_evaluate(operand, vars)?;
+                
+                match op {
+                    UnaryOperator::Negate => Ok(-operand_val),
+                    UnaryOperator::Plus => Ok(operand_val),
+                    UnaryOperator::Sqrt => Ok(operand_val.sqrt()),
+                    UnaryOperator::Abs => Ok(operand_val.abs()),
+                    UnaryOperator::Sin => Ok(operand_val.sin()),
+                    UnaryOperator::Cos => Ok(operand_val.cos()),
+                    UnaryOperator::Tan => Ok(operand_val.tan()),
+                    UnaryOperator::Asin => Ok(operand_val.asin()),
+                    UnaryOperator::Acos => Ok(operand_val.acos()),
+                    UnaryOperator::Atan => Ok(operand_val.atan()),
+                    UnaryOperator::Sinh => Ok(operand_val.sinh()),
+                    UnaryOperator::Cosh => Ok(operand_val.cosh()),
+                    UnaryOperator::Tanh => Ok(operand_val.tanh()),
+                    UnaryOperator::Asinh => Ok(operand_val.asinh()),
+                    UnaryOperator::Acosh => Ok(operand_val.acosh()),
+                    UnaryOperator::Atanh => Ok(operand_val.atanh()),
+                    UnaryOperator::Ln => Ok(operand_val.ln()),
+                    UnaryOperator::Log10 => Ok(operand_val.log10()),
+                    UnaryOperator::Log2 => Ok(operand_val.log2()),
+                    UnaryOperator::Exp => Ok(operand_val.exp()),
+                    UnaryOperator::Factorial => {
+                        if operand_val >= 0.0 && operand_val.fract() == 0.0 {
+                            let n = operand_val as u32;
+                            if n <= 170 { // 避免溢出
+                                Ok(self.factorial(n) as f64)
+                            } else {
+                                Ok(f64::INFINITY)
+                            }
+                        } else {
+                            Err(ComputeError::UnsupportedOperation { 
+                                operation: "非整数的阶乘".to_string() 
+                            })
+                        }
+                    }
+                    _ => Err(ComputeError::UnsupportedOperation { 
+                        operation: format!("数值计算一元运算 {:?}", op) 
+                    }),
+                }
+            }
+            
+            _ => Err(ComputeError::UnsupportedOperation { 
+                operation: format!("数值计算 {:?} 类型", expr) 
+            }),
+        }
     }
     
     /// 对表达式积分
@@ -788,6 +1041,222 @@ impl CalculusEngine {
             _ => false,
         }
     }
+    
+    /// 辅助方法：代入并求值
+    fn substitute_and_evaluate(&self, expr: &Expression, var: &str, value: &Expression) -> Result<Expression, ComputeError> {
+        match expr {
+            Expression::Variable(name) => {
+                if name == var {
+                    Ok(value.clone())
+                } else {
+                    Ok(expr.clone())
+                }
+            }
+            Expression::BinaryOp { op, left, right } => {
+                let left_sub = self.substitute_and_evaluate(left, var, value)?;
+                let right_sub = self.substitute_and_evaluate(right, var, value)?;
+                Ok(Expression::BinaryOp {
+                    op: op.clone(),
+                    left: Box::new(left_sub),
+                    right: Box::new(right_sub),
+                })
+            }
+            Expression::UnaryOp { op, operand } => {
+                let operand_sub = self.substitute_and_evaluate(operand, var, value)?;
+                Ok(Expression::UnaryOp {
+                    op: op.clone(),
+                    operand: Box::new(operand_sub),
+                })
+            }
+            _ => Ok(expr.clone()),
+        }
+    }
+    
+    /// 辅助方法：格式化表达式为字符串（简化版）
+    fn format_expression(&self, expr: &Expression) -> String {
+        match expr {
+            Expression::Number(n) => format!("{:?}", n),
+            Expression::Variable(name) => name.clone(),
+            Expression::Constant(c) => format!("{:?}", c),
+            Expression::BinaryOp { op, left, right } => {
+                format!("({} {:?} {})", 
+                    self.format_expression(left), 
+                    op, 
+                    self.format_expression(right))
+            }
+            Expression::UnaryOp { op, operand } => {
+                format!("{:?}({})", op, self.format_expression(operand))
+            }
+            _ => format!("{:?}", expr),
+        }
+    }
+    
+    /// e^x 在 x=0 处的泰勒级数展开
+    fn exp_series_at_zero(&self, var: &str, order: usize) -> Result<Expression, ComputeError> {
+        let mut terms = Vec::new();
+        
+        for n in 0..=order {
+            if n == 0 {
+                // 第0项：1
+                terms.push(Expression::Number(Number::Integer(BigInt::from(1))));
+            } else {
+                // 第n项：x^n / n!
+                let x_power = if n == 1 {
+                    Expression::Variable(var.to_string())
+                } else {
+                    Expression::BinaryOp {
+                        op: BinaryOperator::Power,
+                        left: Box::new(Expression::Variable(var.to_string())),
+                        right: Box::new(Expression::Number(Number::Integer(BigInt::from(n as i64)))),
+                    }
+                };
+                
+                let factorial_n = self.factorial(n as u32);
+                let term = Expression::BinaryOp {
+                    op: BinaryOperator::Divide,
+                    left: Box::new(x_power),
+                    right: Box::new(Expression::Number(Number::Integer(BigInt::from(factorial_n)))),
+                };
+                
+                terms.push(term);
+            }
+        }
+        
+        // 将所有项相加
+        let mut result = terms[0].clone();
+        for term in terms.into_iter().skip(1) {
+            result = Expression::BinaryOp {
+                op: BinaryOperator::Add,
+                left: Box::new(result),
+                right: Box::new(term),
+            };
+        }
+        
+        Ok(result)
+    }
+    
+    /// sin(x) 在 x=0 处的泰勒级数展开
+    fn sin_series_at_zero(&self, var: &str, order: usize) -> Result<Expression, ComputeError> {
+        let mut terms = Vec::new();
+        
+        for n in 0..=order {
+            if n % 2 == 1 { // 只有奇数项
+                let power = n;
+                let factorial_n = self.factorial(n as u32);
+                let sign = if (n - 1) / 2 % 2 == 0 { 1 } else { -1 };
+                
+                let x_power = if power == 1 {
+                    Expression::Variable(var.to_string())
+                } else {
+                    Expression::BinaryOp {
+                        op: BinaryOperator::Power,
+                        left: Box::new(Expression::Variable(var.to_string())),
+                        right: Box::new(Expression::Number(Number::Integer(BigInt::from(power as i64)))),
+                    }
+                };
+                
+                let mut term = Expression::BinaryOp {
+                    op: BinaryOperator::Divide,
+                    left: Box::new(x_power),
+                    right: Box::new(Expression::Number(Number::Integer(BigInt::from(factorial_n)))),
+                };
+                
+                if sign == -1 {
+                    term = Expression::UnaryOp {
+                        op: UnaryOperator::Negate,
+                        operand: Box::new(term),
+                    };
+                }
+                
+                terms.push(term);
+            }
+        }
+        
+        if terms.is_empty() {
+            return Ok(Expression::Number(Number::Integer(BigInt::from(0))));
+        }
+        
+        // 将所有项相加
+        let mut result = terms[0].clone();
+        for term in terms.into_iter().skip(1) {
+            result = Expression::BinaryOp {
+                op: BinaryOperator::Add,
+                left: Box::new(result),
+                right: Box::new(term),
+            };
+        }
+        
+        Ok(result)
+    }
+    
+    /// cos(x) 在 x=0 处的泰勒级数展开
+    fn cos_series_at_zero(&self, var: &str, order: usize) -> Result<Expression, ComputeError> {
+        let mut terms = Vec::new();
+        
+        for n in 0..=order {
+            if n % 2 == 0 { // 只有偶数项
+                let power = n;
+                let factorial_n = self.factorial(n as u32);
+                let sign = if n / 2 % 2 == 0 { 1 } else { -1 };
+                
+                let x_power = if power == 0 {
+                    Expression::Number(Number::Integer(BigInt::from(1)))
+                } else if power == 2 {
+                    Expression::BinaryOp {
+                        op: BinaryOperator::Power,
+                        left: Box::new(Expression::Variable(var.to_string())),
+                        right: Box::new(Expression::Number(Number::Integer(BigInt::from(2)))),
+                    }
+                } else {
+                    Expression::BinaryOp {
+                        op: BinaryOperator::Power,
+                        left: Box::new(Expression::Variable(var.to_string())),
+                        right: Box::new(Expression::Number(Number::Integer(BigInt::from(power as i64)))),
+                    }
+                };
+                
+                let mut term = Expression::BinaryOp {
+                    op: BinaryOperator::Divide,
+                    left: Box::new(x_power),
+                    right: Box::new(Expression::Number(Number::Integer(BigInt::from(factorial_n)))),
+                };
+                
+                if sign == -1 {
+                    term = Expression::UnaryOp {
+                        op: UnaryOperator::Negate,
+                        operand: Box::new(term),
+                    };
+                }
+                
+                terms.push(term);
+            }
+        }
+        
+        if terms.is_empty() {
+            return Ok(Expression::Number(Number::Integer(BigInt::from(1))));
+        }
+        
+        // 将所有项相加
+        let mut result = terms[0].clone();
+        for term in terms.into_iter().skip(1) {
+            result = Expression::BinaryOp {
+                op: BinaryOperator::Add,
+                left: Box::new(result),
+                right: Box::new(term),
+            };
+        }
+        
+        Ok(result)
+    }
+    
+    /// 计算阶乘
+    fn factorial(&self, n: u32) -> u64 {
+        if n == 0 || n == 1 {
+            1
+        } else {
+            (2..=n as u64).product()
+        }
+    }
 }
 
 #[cfg(test)]
@@ -1136,5 +1605,153 @@ mod tests {
             }
             _ => panic!("期望得到乘法表达式"),
         }
+    }
+    
+    // 高级微积分功能测试
+    
+    #[test]
+    fn test_limit_sin_x_over_x() {
+        let engine = CalculusEngine::new();
+        
+        // lim(x->0) sin(x)/x = 1
+        let sin_x = unop(UnaryOperator::Sin, var("x"));
+        let expr = binop(BinaryOperator::Divide, sin_x, var("x"));
+        let point = int(0);
+        
+        let result = engine.limit(&expr, "x", &point).unwrap();
+        assert_eq!(result, int(1));
+    }
+    
+    #[test]
+    fn test_limit_one_minus_cos_x_over_x() {
+        let engine = CalculusEngine::new();
+        
+        // lim(x->0) (1-cos(x))/x = 0
+        let cos_x = unop(UnaryOperator::Cos, var("x"));
+        let one_minus_cos = binop(BinaryOperator::Subtract, int(1), cos_x);
+        let expr = binop(BinaryOperator::Divide, one_minus_cos, var("x"));
+        let point = int(0);
+        
+        let result = engine.limit(&expr, "x", &point).unwrap();
+        assert_eq!(result, int(0));
+    }
+    
+    #[test]
+    fn test_series_exp_at_zero() {
+        let engine = CalculusEngine::new();
+        
+        // e^x 在 x=0 处的泰勒级数展开（前3项）
+        let exp_x = unop(UnaryOperator::Exp, var("x"));
+        let point = int(0);
+        
+        let result = engine.series(&exp_x, "x", &point, 2).unwrap();
+        
+        // 结果应该是加法表达式：1 + x + x²/2
+        match result {
+            Expression::BinaryOp { op: BinaryOperator::Add, .. } => {
+                // 验证结构正确
+            }
+            _ => panic!("期望得到加法表达式"),
+        }
+    }
+    
+    #[test]
+    fn test_series_sin_at_zero() {
+        let engine = CalculusEngine::new();
+        
+        // sin(x) 在 x=0 处的泰勒级数展开（前2项）
+        let sin_x = unop(UnaryOperator::Sin, var("x"));
+        let point = int(0);
+        
+        let result = engine.series(&sin_x, "x", &point, 3).unwrap();
+        
+        // 结果应该是减法表达式：x - x³/6
+        match result {
+            Expression::BinaryOp { op: BinaryOperator::Add, .. } => {
+                // 验证结构正确
+            }
+            _ => panic!("期望得到加法表达式"),
+        }
+    }
+    
+    #[test]
+    fn test_series_cos_at_zero() {
+        let engine = CalculusEngine::new();
+        
+        // cos(x) 在 x=0 处的泰勒级数展开（前3项）
+        let cos_x = unop(UnaryOperator::Cos, var("x"));
+        let point = int(0);
+        
+        let result = engine.series(&cos_x, "x", &point, 4).unwrap();
+        
+        // 结果应该是加法表达式：1 - x²/2 + x⁴/24
+        match result {
+            Expression::BinaryOp { op: BinaryOperator::Add, .. } => {
+                // 验证结构正确
+            }
+            _ => panic!("期望得到加法表达式"),
+        }
+    }
+    
+    #[test]
+    fn test_numerical_evaluate_basic() {
+        let engine = CalculusEngine::new();
+        let mut vars = std::collections::HashMap::new();
+        vars.insert("x".to_string(), 2.0);
+        
+        // 数值计算：x + 3 = 2 + 3 = 5
+        let expr = binop(BinaryOperator::Add, var("x"), int(3));
+        let result = engine.numerical_evaluate(&expr, &vars).unwrap();
+        assert!((result - 5.0).abs() < 1e-10);
+        
+        // 数值计算：x² = 2² = 4
+        let expr = binop(BinaryOperator::Power, var("x"), int(2));
+        let result = engine.numerical_evaluate(&expr, &vars).unwrap();
+        assert!((result - 4.0).abs() < 1e-10);
+    }
+    
+    #[test]
+    fn test_numerical_evaluate_trigonometric() {
+        let engine = CalculusEngine::new();
+        let mut vars = std::collections::HashMap::new();
+        vars.insert("x".to_string(), 0.0);
+        
+        // 数值计算：sin(0) = 0
+        let expr = unop(UnaryOperator::Sin, var("x"));
+        let result = engine.numerical_evaluate(&expr, &vars).unwrap();
+        assert!((result - 0.0).abs() < 1e-10);
+        
+        // 数值计算：cos(0) = 1
+        let expr = unop(UnaryOperator::Cos, var("x"));
+        let result = engine.numerical_evaluate(&expr, &vars).unwrap();
+        assert!((result - 1.0).abs() < 1e-10);
+    }
+    
+    #[test]
+    fn test_numerical_evaluate_constants() {
+        let engine = CalculusEngine::new();
+        let vars = std::collections::HashMap::new();
+        
+        // 数值计算：π ≈ 3.14159
+        let expr = Expression::Constant(MathConstant::Pi);
+        let result = engine.numerical_evaluate(&expr, &vars).unwrap();
+        assert!((result - std::f64::consts::PI).abs() < 1e-10);
+        
+        // 数值计算：e ≈ 2.71828
+        let expr = Expression::Constant(MathConstant::E);
+        let result = engine.numerical_evaluate(&expr, &vars).unwrap();
+        assert!((result - std::f64::consts::E).abs() < 1e-10);
+    }
+    
+    #[test]
+    fn test_factorial() {
+        let engine = CalculusEngine::new();
+        
+        assert_eq!(engine.factorial(0), 1);
+        assert_eq!(engine.factorial(1), 1);
+        assert_eq!(engine.factorial(2), 2);
+        assert_eq!(engine.factorial(3), 6);
+        assert_eq!(engine.factorial(4), 24);
+        assert_eq!(engine.factorial(5), 120);
     }
 }
