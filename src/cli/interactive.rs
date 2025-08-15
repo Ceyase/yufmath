@@ -66,7 +66,8 @@ impl InteractiveSession {
                 Ok(Some(self.show_help()))
             }
             "quit" | "exit" | "q" => {
-                Ok(Some("再见！".to_string()))
+                // 退出命令不返回消息，由主循环处理
+                Ok(None)
             }
             "clear" => {
                 // 清空变量
@@ -259,18 +260,19 @@ pub fn run_interactive() -> Result<(), Box<dyn std::error::Error>> {
                     line
                 };
                 
-                // 处理命令
+                // 检查是否是退出命令
+                if input.trim().to_lowercase() == "quit" 
+                    || input.trim().to_lowercase() == "exit" 
+                    || input.trim().to_lowercase() == "q" {
+                    println!("再见！");
+                    break;
+                }
+                
+                // 处理其他命令
                 match session.process_command(&input) {
                     Ok(result) => {
                         if !result.is_empty() {
                             println!("{}", result);
-                        }
-                        
-                        // 检查是否是退出命令
-                        if input.trim().to_lowercase() == "quit" 
-                            || input.trim().to_lowercase() == "exit" 
-                            || input.trim().to_lowercase() == "q" {
-                            break;
                         }
                     }
                     Err(e) => {
@@ -296,7 +298,6 @@ pub fn run_interactive() -> Result<(), Box<dyn std::error::Error>> {
     // 保存历史记录
     let _ = rl.save_history(history_file);
     
-    println!("再见！");
     Ok(())
 }
 

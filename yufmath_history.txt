@@ -4,3 +4,10 @@ format latex
 format mathml
 format standard
 quit
+5
+x
+x+5
+1+2
+9+9
+12+13
+exit

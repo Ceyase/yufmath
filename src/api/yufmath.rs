@@ -4,7 +4,7 @@
 
 use std::collections::HashMap;
 use crate::core::{Expression, Number};
-use crate::parser::{Parser, ParseError};
+use crate::parser::{Parser, ParseError, syntax::ExpressionParser};
 use crate::engine::{ComputeEngine, ComputeError, compute::BasicComputeEngine};
 use crate::formatter::{Formatter, FormatOptions, MultiFormatter};
 use super::{YufmathError, ComputeConfig, PerformanceMonitor};
@@ -22,7 +22,7 @@ impl Yufmath {
     /// 创建新的 Yufmath 实例
     pub fn new() -> Self {
         Self {
-            parser: Box::new(DummyParser),
+            parser: Box::new(ExpressionParser::new()),
             engine: Box::new(BasicComputeEngine::new()),
             formatter: Box::new(MultiFormatter::new()),
             monitor: PerformanceMonitor::new(),
@@ -102,22 +102,6 @@ impl Yufmath {
 impl Default for Yufmath {
     fn default() -> Self {
         Self::new()
-    }
-}
-// 临时实现，仅用于测试
-struct DummyParser;
-
-impl Parser for DummyParser {
-    fn parse(&self, _input: &str) -> Result<Expression, crate::parser::ParseError> {
-        // 临时实现，仅返回错误
-        Err(crate::parser::ParseError::Syntax { 
-            pos: 0, 
-            message: "临时解析器未实现".to_string() 
-        })
-    }
-    
-    fn validate(&self, _input: &str) -> Result<(), crate::parser::ParseError> {
-        Ok(())
     }
 }
 

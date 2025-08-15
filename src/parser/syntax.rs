@@ -3,7 +3,7 @@
 //! 将词法单元序列转换为抽象语法树。
 
 use crate::core::{Expression, Number, MathConstant, BinaryOperator, UnaryOperator};
-use super::{ParseError, lexer::{Lexer, Token}};
+use super::{ParseError, Parser, lexer::{Lexer, Token}};
 use num_bigint::BigInt;
 use num_rational::BigRational;
 use bigdecimal::BigDecimal;
@@ -455,6 +455,35 @@ impl SyntaxParser {
     /// 前进到下一个标记
     fn advance(&mut self) -> Result<(), ParseError> {
         self.current_token = self.lexer.next_token()?;
+        Ok(())
+    }
+}
+
+/// 实际的解析器实现
+pub struct ExpressionParser;
+
+impl ExpressionParser {
+    /// 创建新的表达式解析器
+    pub fn new() -> Self {
+        Self
+    }
+}
+
+impl Default for ExpressionParser {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl Parser for ExpressionParser {
+    fn parse(&self, input: &str) -> Result<Expression, ParseError> {
+        let mut parser = SyntaxParser::new(input.to_string())?;
+        parser.parse()
+    }
+    
+    fn validate(&self, input: &str) -> Result<(), ParseError> {
+        // 尝试解析表达式来验证语法
+        self.parse(input)?;
         Ok(())
     }
 }
