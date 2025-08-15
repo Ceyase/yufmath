@@ -860,6 +860,7 @@ dependencies = [
  "criterion",
  "num-bigint",
  "num-complex",
+ "num-integer",
  "num-rational",
  "num-traits",
  "thiserror",

@@ -7,6 +7,7 @@ pub mod compute;
 pub mod simplify;
 pub mod calculus;
 pub mod algebra;
+pub mod polynomial;
 pub mod error;
 
 use std::collections::HashMap;
@@ -35,4 +36,20 @@ pub trait ComputeEngine {
     
     /// 简化包含数学常量的表达式
     fn simplify_constants(&self, expr: &Expression) -> Result<Expression, ComputeError>;
+    
+    /// 多项式展开
+    fn expand(&self, expr: &Expression) -> Result<Expression, ComputeError>;
+    
+    /// 因式分解
+    fn factor(&self, expr: &Expression) -> Result<Expression, ComputeError>;
+    
+    /// 同类项收集
+    fn collect(&self, expr: &Expression, var: &str) -> Result<Expression, ComputeError>;
+    
+    /// 多项式除法
+    fn polynomial_divide(&self, dividend: &Expression, divisor: &Expression) 
+        -> Result<(Expression, Expression), ComputeError>;
+    
+    /// 多项式最大公约数
+    fn polynomial_gcd(&self, a: &Expression, b: &Expression) -> Result<Expression, ComputeError>;
 }
