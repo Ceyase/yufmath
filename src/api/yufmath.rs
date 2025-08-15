@@ -5,7 +5,7 @@
 use std::collections::HashMap;
 use crate::core::{Expression, Number};
 use crate::parser::{Parser, ParseError};
-use crate::engine::{ComputeEngine, ComputeError};
+use crate::engine::{ComputeEngine, ComputeError, compute::BasicComputeEngine};
 use crate::formatter::{Formatter, FormatOptions};
 use super::{YufmathError, ComputeConfig, PerformanceMonitor};
 
@@ -21,8 +21,14 @@ pub struct Yufmath {
 impl Yufmath {
     /// 创建新的 Yufmath 实例
     pub fn new() -> Self {
-        // 这里暂时使用占位符实现，后续任务会实现具体的组件
-        todo!("将在后续任务中实现具体的解析器、引擎和格式化器")
+        // 临时实现，仅用于测试求导功能
+        Self {
+            parser: Box::new(DummyParser),
+            engine: Box::new(BasicComputeEngine::new()),
+            formatter: Box::new(DummyFormatter),
+            monitor: PerformanceMonitor::new(),
+            config: ComputeConfig::default(),
+        }
     }
     
     /// 创建带配置的 Yufmath 实例
@@ -53,6 +59,11 @@ impl Yufmath {
         Ok(self.engine.differentiate(expr, var)?)
     }
     
+    /// 求导（别名方法）
+    pub fn differentiate(&self, expr: &Expression, var: &str) -> Result<Expression, YufmathError> {
+        self.diff(expr, var)
+    }
+    
     /// 积分
     pub fn integrate(&self, expr: &Expression, var: &str) -> Result<Expression, YufmathError> {
         Ok(self.engine.integrate(expr, var)?)
@@ -77,5 +88,33 @@ impl Yufmath {
 impl Default for Yufmath {
     fn default() -> Self {
         Self::new()
+    }
+}
+// 临时实现，仅用于测试
+struct DummyParser;
+
+impl Parser for DummyParser {
+    fn parse(&self, _input: &str) -> Result<Expression, crate::parser::ParseError> {
+        // 临时实现，仅返回错误
+        Err(crate::parser::ParseError::Syntax { 
+            pos: 0, 
+            message: "临时解析器未实现".to_string() 
+        })
+    }
+    
+    fn validate(&self, _input: &str) -> Result<(), crate::parser::ParseError> {
+        Ok(())
+    }
+}
+
+struct DummyFormatter;
+
+impl Formatter for DummyFormatter {
+    fn format(&self, _expr: &Expression) -> String {
+        "临时格式化器未实现".to_string()
+    }
+    
+    fn set_options(&mut self, _options: FormatOptions) {
+        // 临时实现，什么都不做
     }
 }

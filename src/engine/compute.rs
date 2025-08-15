@@ -8,6 +8,7 @@ use super::{ComputeEngine, ComputeError};
 use super::simplify::Simplifier;
 use super::polynomial::PolynomialEngine;
 use super::number_theory::NumberTheoryEngine;
+use super::calculus::CalculusEngine;
 
 /// 基础计算引擎实现
 pub struct BasicComputeEngine {
@@ -17,6 +18,8 @@ pub struct BasicComputeEngine {
     polynomial_engine: PolynomialEngine,
     /// 数论和组合数学引擎
     number_theory_engine: NumberTheoryEngine,
+    /// 微积分引擎
+    calculus_engine: CalculusEngine,
 }
 
 impl BasicComputeEngine {
@@ -26,6 +29,7 @@ impl BasicComputeEngine {
             simplifier: std::cell::RefCell::new(Simplifier::new()),
             polynomial_engine: PolynomialEngine::new(),
             number_theory_engine: NumberTheoryEngine::new(),
+            calculus_engine: CalculusEngine::new(),
         }
     }
 }
@@ -40,9 +44,8 @@ impl ComputeEngine for BasicComputeEngine {
         todo!("求值功能将在后续任务中实现")
     }
     
-    fn differentiate(&self, _expr: &Expression, _var: &str) -> Result<Expression, ComputeError> {
-        // 占位符实现，将在后续任务中完成
-        todo!("求导功能将在后续任务中实现")
+    fn differentiate(&self, expr: &Expression, var: &str) -> Result<Expression, ComputeError> {
+        self.calculus_engine.differentiate(expr, var)
     }
     
     fn integrate(&self, _expr: &Expression, _var: &str) -> Result<Expression, ComputeError> {
