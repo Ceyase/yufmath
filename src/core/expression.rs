@@ -802,12 +802,8 @@ impl Expression {
             }
             
             Expression::Function { name, args } => {
-                let arg_values: Result<Vec<Number>, String> = args
-                    .iter()
-                    .map(|arg| arg.evaluate_exact())
-                    .collect();
-                let arg_values = arg_values?;
-                self.evaluate_function(name, &arg_values)
+                // 对于函数调用，我们需要特殊处理，因为有些函数需要检查原始表达式结构
+                self.evaluate_function_with_expressions(name, args)
             }
             
             Expression::Matrix(rows) => {
@@ -1177,6 +1173,141 @@ impl Expression {
         }
     }
     
+    /// 求值函数调用（使用表达式参数）
+    fn evaluate_function_with_expressions(&self, name: &str, args: &[Expression]) -> Result<Number, String> {
+        match name {
+            // 三角函数
+            "sin" => {
+                if args.len() != 1 {
+                    return Err("sin函数需要一个参数".to_string());
+                }
+                self.evaluate_trigonometric_function_with_expr("sin", &args[0])
+            }
+            "cos" => {
+                if args.len() != 1 {
+                    return Err("cos函数需要一个参数".to_string());
+                }
+                self.evaluate_trigonometric_function_with_expr("cos", &args[0])
+            }
+            "tan" => {
+                if args.len() != 1 {
+                    return Err("tan函数需要一个参数".to_string());
+                }
+                self.evaluate_trigonometric_function_with_expr("tan", &args[0])
+            }
+            
+            // 指数和对数函数
+            "exp" => {
+                if args.len() != 1 {
+                    return Err("exp函数需要一个参数".to_string());
+                }
+                self.evaluate_exponential_function_with_expr(&args[0])
+            }
+            "ln" | "log" => {
+                if args.len() != 1 {
+                    return Err("ln函数需要一个参数".to_string());
+                }
+                let arg_val = args[0].evaluate_exact()?;
+                self.evaluate_logarithm_function(&arg_val)
+            }
+            
+            // 其他函数，先求值参数再调用原有方法
+            _ => {
+                let arg_values: Result<Vec<Number>, String> = args
+                    .iter()
+                    .map(|arg| arg.evaluate_exact())
+                    .collect();
+                let arg_values = arg_values?;
+                self.evaluate_function(name, &arg_values)
+            }
+        }
+    }
+    
+    /// 求值三角函数（使用表达式参数）
+    fn evaluate_trigonometric_function_with_expr(&self, name: &str, arg: &Expression) -> Result<Number, String> {
+        use super::MathConstant;
+        
+        // 检查特殊的表达式模式
+        match arg {
+            // 直接的数学常量
+            Expression::Constant(MathConstant::Pi) => {
+                match name {
+                    "sin" => return Ok(Number::Integer(num_bigint::BigInt::from(0))),
+                    "cos" => return Ok(Number::Integer(num_bigint::BigInt::from(-1))),
+                    "tan" => return Ok(Number::Integer(num_bigint::BigInt::from(0))),
+                    _ => {}
+                }
+            }
+            
+            // π 的分数
+            Expression::BinaryOp { op: BinaryOperator::Divide, left, right } => {
+                if let (Expression::Constant(MathConstant::Pi), Expression::Number(Number::Integer(n))) = 
+                    (left.as_ref(), right.as_ref()) {
+                    if n == &num_bigint::BigInt::from(2) {
+                        // π/2 的三角函数值
+                        match name {
+                            "sin" => return Ok(Number::Integer(num_bigint::BigInt::from(1))),
+                            "cos" => return Ok(Number::Integer(num_bigint::BigInt::from(0))),
+                            "tan" => return Ok(Number::Constant(MathConstant::Undefined)),
+                            _ => {}
+                        }
+                    } else if n == &num_bigint::BigInt::from(4) {
+                        // π/4 的三角函数值
+                        match name {
+                            "sin" | "cos" => {
+                                // sin(π/4) = cos(π/4) = √2/2
+                                return Ok(Number::Symbolic(Box::new(Expression::BinaryOp {
+                                    op: BinaryOperator::Divide,
+                                    left: Box::new(Expression::UnaryOp {
+                                        op: UnaryOperator::Sqrt,
+                                        operand: Box::new(Expression::Number(Number::Integer(num_bigint::BigInt::from(2)))),
+                                    }),
+                                    right: Box::new(Expression::Number(Number::Integer(num_bigint::BigInt::from(2)))),
+                                })));
+                            }
+                            "tan" => return Ok(Number::Integer(num_bigint::BigInt::from(1))),
+                            _ => {}
+                        }
+                    }
+                }
+            }
+            
+            _ => {}
+        }
+        
+        // 对于其他情况，先求值参数再调用原有方法
+        let arg_val = arg.evaluate_exact()?;
+        self.evaluate_trigonometric_function(name, &arg_val)
+    }
+    
+    /// 求值指数函数（使用表达式参数）
+    fn evaluate_exponential_function_with_expr(&self, arg: &Expression) -> Result<Number, String> {
+        use super::MathConstant;
+        
+        // 检查特殊的表达式模式
+        match arg {
+            // exp(i*π) = -1 (欧拉公式)
+            Expression::BinaryOp { op: BinaryOperator::Multiply, left, right } => {
+                // 检查是否为 i*π 或 π*i 的形式
+                let is_i_pi = match (left.as_ref(), right.as_ref()) {
+                    (Expression::Constant(MathConstant::I), Expression::Constant(MathConstant::Pi)) |
+                    (Expression::Constant(MathConstant::Pi), Expression::Constant(MathConstant::I)) => true,
+                    _ => false,
+                };
+                
+                if is_i_pi {
+                    return Ok(Number::Integer(num_bigint::BigInt::from(-1)));
+                }
+            }
+            
+            _ => {}
+        }
+        
+        // 对于其他情况，先求值参数再调用原有方法
+        let arg_val = arg.evaluate_exact()?;
+        self.evaluate_exponential_function(&arg_val)
+    }
+
     /// 求值函数调用
     fn evaluate_function(&self, name: &str, args: &[Number]) -> Result<Number, String> {
         match name {
@@ -1349,10 +1480,55 @@ impl Expression {
         
         // 检查是否为数学常量
         if let Number::Constant(c) = arg {
-            if let Some(result) = c.trigonometric_rule(name) {
-                match result {
-                    crate::core::Expression::Number(n) => return Ok(n),
-                    _ => return Ok(Number::Symbolic(Box::new(result))),
+            match (name, c) {
+                ("sin", MathConstant::Pi) => return Ok(Number::Integer(num_bigint::BigInt::from(0))),
+                ("cos", MathConstant::Pi) => return Ok(Number::Integer(num_bigint::BigInt::from(-1))),
+                ("tan", MathConstant::Pi) => return Ok(Number::Integer(num_bigint::BigInt::from(0))),
+                _ => {}
+            }
+        }
+        
+        // 检查是否为符号表达式中的数学常量
+        if let Number::Symbolic(expr) = arg {
+            if let Expression::Constant(c) = expr.as_ref() {
+                match (name, c) {
+                    ("sin", MathConstant::Pi) => return Ok(Number::Integer(num_bigint::BigInt::from(0))),
+                    ("cos", MathConstant::Pi) => return Ok(Number::Integer(num_bigint::BigInt::from(-1))),
+                    ("tan", MathConstant::Pi) => return Ok(Number::Integer(num_bigint::BigInt::from(0))),
+                    _ => {}
+                }
+            }
+            
+            // 检查是否为 π 的分数
+            if let Expression::BinaryOp { op: BinaryOperator::Divide, left, right } = expr.as_ref() {
+                if let (Expression::Constant(MathConstant::Pi), Expression::Number(Number::Integer(n))) = 
+                    (left.as_ref(), right.as_ref()) {
+                    if n == &num_bigint::BigInt::from(2) {
+                        // π/2 的三角函数值
+                        match name {
+                            "sin" => return Ok(Number::Integer(num_bigint::BigInt::from(1))),
+                            "cos" => return Ok(Number::Integer(num_bigint::BigInt::from(0))),
+                            "tan" => return Ok(Number::Constant(MathConstant::Undefined)),
+                            _ => {}
+                        }
+                    } else if n == &num_bigint::BigInt::from(4) {
+                        // π/4 的三角函数值
+                        match name {
+                            "sin" | "cos" => {
+                                // sin(π/4) = cos(π/4) = √2/2
+                                return Ok(Number::Symbolic(Box::new(Expression::BinaryOp {
+                                    op: BinaryOperator::Divide,
+                                    left: Box::new(Expression::UnaryOp {
+                                        op: UnaryOperator::Sqrt,
+                                        operand: Box::new(Expression::Number(Number::Integer(num_bigint::BigInt::from(2)))),
+                                    }),
+                                    right: Box::new(Expression::Number(Number::Integer(num_bigint::BigInt::from(2)))),
+                                })));
+                            }
+                            "tan" => return Ok(Number::Integer(num_bigint::BigInt::from(1))),
+                            _ => {}
+                        }
+                    }
                 }
             }
         }
@@ -1436,7 +1612,7 @@ impl Expression {
             Number::Integer(n) if n == &num_bigint::BigInt::from(1) => {
                 return Ok(Number::Constant(MathConstant::E));
             }
-            // exp(i*π) = -1 (欧拉公式)
+            // 检查符号表达式
             Number::Symbolic(expr) => {
                 if let Expression::BinaryOp { op: BinaryOperator::Multiply, left, right } = expr.as_ref() {
                     // 检查是否为 i*π 或 π*i 的形式
@@ -1454,6 +1630,13 @@ impl Expression {
                         }
                         (Expression::Constant(MathConstant::Pi), Expression::Number(Number::Symbolic(inner_expr))) => {
                             matches!(inner_expr.as_ref(), Expression::Constant(MathConstant::I))
+                        }
+                        // 检查符号表示的 π
+                        (Expression::Constant(MathConstant::I), Expression::Number(Number::Symbolic(inner_expr))) => {
+                            matches!(inner_expr.as_ref(), Expression::Constant(MathConstant::Pi))
+                        }
+                        (Expression::Number(Number::Symbolic(inner_expr)), Expression::Constant(MathConstant::I)) => {
+                            matches!(inner_expr.as_ref(), Expression::Constant(MathConstant::Pi))
                         }
                         _ => false,
                     };
