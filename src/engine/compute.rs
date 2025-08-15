@@ -48,9 +48,8 @@ impl ComputeEngine for BasicComputeEngine {
         self.calculus_engine.differentiate(expr, var)
     }
     
-    fn integrate(&self, _expr: &Expression, _var: &str) -> Result<Expression, ComputeError> {
-        // 占位符实现，将在后续任务中完成
-        todo!("积分功能将在后续任务中实现")
+    fn integrate(&self, expr: &Expression, var: &str) -> Result<Expression, ComputeError> {
+        self.calculus_engine.integrate(expr, var)
     }
     
     fn constant_to_number(&self, _constant: &MathConstant) -> Result<Number, ComputeError> {

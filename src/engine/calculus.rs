@@ -16,6 +16,81 @@ impl CalculusEngine {
         Self
     }
     
+    /// 对表达式积分
+    pub fn integrate(&self, expr: &Expression, var: &str) -> Result<Expression, ComputeError> {
+        match expr {
+            // 常数的积分：∫c dx = cx + C
+            Expression::Number(n) => {
+                if n == &Number::Integer(BigInt::from(0)) {
+                    // ∫0 dx = C (这里简化为 0，实际应该包含积分常数)
+                    Ok(Expression::Number(Number::Integer(BigInt::from(0))))
+                } else {
+                    // ∫c dx = cx
+                    Ok(Expression::BinaryOp {
+                        op: BinaryOperator::Multiply,
+                        left: Box::new(expr.clone()),
+                        right: Box::new(Expression::Variable(var.to_string())),
+                    })
+                }
+            }
+            
+            // 数学常量的积分
+            Expression::Constant(_) => {
+                // ∫c dx = cx
+                Ok(Expression::BinaryOp {
+                    op: BinaryOperator::Multiply,
+                    left: Box::new(expr.clone()),
+                    right: Box::new(Expression::Variable(var.to_string())),
+                })
+            }
+            
+            // 变量的积分
+            Expression::Variable(name) => {
+                if name == var {
+                    // ∫x dx = x²/2
+                    let x_squared = Expression::BinaryOp {
+                        op: BinaryOperator::Power,
+                        left: Box::new(Expression::Variable(var.to_string())),
+                        right: Box::new(Expression::Number(Number::Integer(BigInt::from(2)))),
+                    };
+                    
+                    Ok(Expression::BinaryOp {
+                        op: BinaryOperator::Divide,
+                        left: Box::new(x_squared),
+                        right: Box::new(Expression::Number(Number::Integer(BigInt::from(2)))),
+                    })
+                } else {
+                    // ∫y dx = yx (y 是其他变量，视为常数)
+                    Ok(Expression::BinaryOp {
+                        op: BinaryOperator::Multiply,
+                        left: Box::new(expr.clone()),
+                        right: Box::new(Expression::Variable(var.to_string())),
+                    })
+                }
+            }
+            
+            // 二元运算的积分
+            Expression::BinaryOp { op, left, right } => {
+                self.integrate_binary_op(op, left, right, var)
+            }
+            
+            // 一元运算的积分
+            Expression::UnaryOp { op, operand } => {
+                self.integrate_unary_op(op, operand, var)
+            }
+            
+            // 函数的积分
+            Expression::Function { name, args } => {
+                self.integrate_function(name, args, var)
+            }
+            
+            // 其他类型暂不支持
+            _ => Err(ComputeError::UnsupportedOperation { 
+                operation: format!("对 {:?} 类型积分", expr) 
+            }),
+        }
+    }
+    
     /// 对表达式求导
     pub fn differentiate(&self, expr: &Expression, var: &str) -> Result<Expression, ComputeError> {
         match expr {
@@ -453,12 +528,237 @@ impl CalculusEngine {
         }
     }
     
+    /// 对二元运算积分
+    fn integrate_binary_op(
+        &self, 
+        op: &BinaryOperator, 
+        left: &Expression, 
+        right: &Expression, 
+        var: &str
+    ) -> Result<Expression, ComputeError> {
+        match op {
+            // 加法法则: ∫(u + v) dx = ∫u dx + ∫v dx
+            BinaryOperator::Add => {
+                let left_integral = self.integrate(left, var)?;
+                let right_integral = self.integrate(right, var)?;
+                Ok(Expression::BinaryOp {
+                    op: BinaryOperator::Add,
+                    left: Box::new(left_integral),
+                    right: Box::new(right_integral),
+                })
+            }
+            
+            // 减法法则: ∫(u - v) dx = ∫u dx - ∫v dx
+            BinaryOperator::Subtract => {
+                let left_integral = self.integrate(left, var)?;
+                let right_integral = self.integrate(right, var)?;
+                Ok(Expression::BinaryOp {
+                    op: BinaryOperator::Subtract,
+                    left: Box::new(left_integral),
+                    right: Box::new(right_integral),
+                })
+            }
+            
+            // 常数乘法法则: ∫(c * u) dx = c * ∫u dx (当 c 是常数时)
+            BinaryOperator::Multiply => {
+                if self.is_constant_with_respect_to(left, var) {
+                    // c * u 的形式
+                    let right_integral = self.integrate(right, var)?;
+                    Ok(Expression::BinaryOp {
+                        op: BinaryOperator::Multiply,
+                        left: left.clone().into(),
+                        right: Box::new(right_integral),
+                    })
+                } else if self.is_constant_with_respect_to(right, var) {
+                    // u * c 的形式
+                    let left_integral = self.integrate(left, var)?;
+                    Ok(Expression::BinaryOp {
+                        op: BinaryOperator::Multiply,
+                        left: Box::new(left_integral),
+                        right: right.clone().into(),
+                    })
+                } else {
+                    // 一般乘法积分比较复杂，这里暂不支持
+                    Err(ComputeError::UnsupportedOperation { 
+                        operation: "一般乘法积分暂不支持".to_string() 
+                    })
+                }
+            }
+            
+            // 幂函数积分: ∫x^n dx = x^(n+1)/(n+1) (n ≠ -1)
+            BinaryOperator::Power => {
+                self.integrate_power(left, right, var)
+            }
+            
+            _ => Err(ComputeError::UnsupportedOperation { 
+                operation: format!("对二元运算 {:?} 积分", op) 
+            }),
+        }
+    }
+    
+    /// 对幂函数积分
+    fn integrate_power(
+        &self, 
+        base: &Expression, 
+        exponent: &Expression, 
+        var: &str
+    ) -> Result<Expression, ComputeError> {
+        // 检查是否为 x^n 的形式
+        if let Expression::Variable(base_var) = base {
+            if base_var == var && self.is_constant_with_respect_to(exponent, var) {
+                // ∫x^n dx = x^(n+1)/(n+1) (n ≠ -1)
+                
+                // 检查是否为 x^(-1) = 1/x 的情况
+                if let Expression::Number(Number::Integer(n)) = exponent {
+                    if n == &BigInt::from(-1) {
+                        // ∫x^(-1) dx = ∫(1/x) dx = ln|x|
+                        return Ok(Expression::UnaryOp {
+                            op: UnaryOperator::Ln,
+                            operand: Box::new(Expression::UnaryOp {
+                                op: UnaryOperator::Abs,
+                                operand: Box::new(Expression::Variable(var.to_string())),
+                            }),
+                        });
+                    }
+                }
+                
+                // n + 1
+                let new_exponent = Expression::BinaryOp {
+                    op: BinaryOperator::Add,
+                    left: exponent.clone().into(),
+                    right: Box::new(Expression::Number(Number::Integer(BigInt::from(1)))),
+                };
+                
+                // x^(n+1)
+                let power_term = Expression::BinaryOp {
+                    op: BinaryOperator::Power,
+                    left: Box::new(Expression::Variable(var.to_string())),
+                    right: Box::new(new_exponent.clone()),
+                };
+                
+                // x^(n+1) / (n+1)
+                Ok(Expression::BinaryOp {
+                    op: BinaryOperator::Divide,
+                    left: Box::new(power_term),
+                    right: Box::new(new_exponent),
+                })
+            } else {
+                Err(ComputeError::UnsupportedOperation { 
+                    operation: "复杂幂函数积分暂不支持".to_string() 
+                })
+            }
+        } else {
+            Err(ComputeError::UnsupportedOperation { 
+                operation: "复杂幂函数积分暂不支持".to_string() 
+            })
+        }
+    }
+    
+    /// 对一元运算积分
+    fn integrate_unary_op(
+        &self, 
+        op: &UnaryOperator, 
+        operand: &Expression, 
+        var: &str
+    ) -> Result<Expression, ComputeError> {
+        match op {
+            // 负号: ∫(-u) dx = -∫u dx
+            UnaryOperator::Negate => {
+                let operand_integral = self.integrate(operand, var)?;
+                Ok(Expression::UnaryOp {
+                    op: UnaryOperator::Negate,
+                    operand: Box::new(operand_integral),
+                })
+            }
+            
+            // 正号: ∫(+u) dx = ∫u dx
+            UnaryOperator::Plus => self.integrate(operand, var),
+            
+            // 三角函数积分
+            UnaryOperator::Sin => {
+                // ∫sin(x) dx = -cos(x)
+                if let Expression::Variable(operand_var) = operand {
+                    if operand_var == var {
+                        return Ok(Expression::UnaryOp {
+                            op: UnaryOperator::Negate,
+                            operand: Box::new(Expression::UnaryOp {
+                                op: UnaryOperator::Cos,
+                                operand: Box::new(Expression::Variable(var.to_string())),
+                            }),
+                        });
+                    }
+                }
+                Err(ComputeError::UnsupportedOperation { 
+                    operation: "复合三角函数积分暂不支持".to_string() 
+                })
+            }
+            
+            UnaryOperator::Cos => {
+                // ∫cos(x) dx = sin(x)
+                if let Expression::Variable(operand_var) = operand {
+                    if operand_var == var {
+                        return Ok(Expression::UnaryOp {
+                            op: UnaryOperator::Sin,
+                            operand: Box::new(Expression::Variable(var.to_string())),
+                        });
+                    }
+                }
+                Err(ComputeError::UnsupportedOperation { 
+                    operation: "复合三角函数积分暂不支持".to_string() 
+                })
+            }
+            
+            // 指数函数积分
+            UnaryOperator::Exp => {
+                // ∫e^x dx = e^x
+                if let Expression::Variable(operand_var) = operand {
+                    if operand_var == var {
+                        return Ok(Expression::UnaryOp {
+                            op: UnaryOperator::Exp,
+                            operand: Box::new(Expression::Variable(var.to_string())),
+                        });
+                    }
+                }
+                Err(ComputeError::UnsupportedOperation { 
+                    operation: "复合指数函数积分暂不支持".to_string() 
+                })
+            }
+            
+            // 1/x 的积分
+            UnaryOperator::Ln => {
+                Err(ComputeError::UnsupportedOperation { 
+                    operation: "ln 函数的积分需要分部积分".to_string() 
+                })
+            }
+            
+            _ => Err(ComputeError::UnsupportedOperation { 
+                operation: format!("对一元运算 {:?} 积分", op) 
+            }),
+        }
+    }
+    
+    /// 对函数积分
+    fn integrate_function(
+        &self, 
+        name: &str, 
+        _args: &[Expression], 
+        _var: &str
+    ) -> Result<Expression, ComputeError> {
+        match name {
+            // 对于函数调用，这里简化处理
+            // 实际实现中应该支持更多内置函数
+            _ => Err(ComputeError::UnsupportedOperation { 
+                operation: format!("对函数 {} 积分", name) 
+            }),
+        }
+    }
+    
     /// 对函数求导
     fn differentiate_function(
         &self, 
         name: &str, 
-        args: &[Expression], 
-        var: &str
+        _args: &[Expression], 
+        _var: &str
     ) -> Result<Expression, ComputeError> {
         match name {
             // 对于函数调用，这里简化处理
@@ -646,5 +946,195 @@ mod tests {
         // 不包含变量 x 的表达式相对于 x 是常数
         let expr = binop(BinaryOperator::Add, var("y"), int(1));
         assert!(engine.is_constant_with_respect_to(&expr, "x"));
+    }
+    
+    // 积分测试
+    
+    #[test]
+    fn test_integrate_constants() {
+        let engine = CalculusEngine::new();
+        
+        // 常数的积分：∫5 dx = 5x
+        let result = engine.integrate(&int(5), "x").unwrap();
+        match result {
+            Expression::BinaryOp { op: BinaryOperator::Multiply, left, right } => {
+                assert_eq!(*left, int(5));
+                assert_eq!(*right, var("x"));
+            }
+            _ => panic!("期望得到 5x"),
+        }
+        
+        // 零的积分：∫0 dx = 0
+        let result = engine.integrate(&int(0), "x").unwrap();
+        assert_eq!(result, int(0));
+        
+        // 数学常量的积分：∫π dx = πx
+        let pi = Expression::Constant(MathConstant::Pi);
+        let result = engine.integrate(&pi, "x").unwrap();
+        match result {
+            Expression::BinaryOp { op: BinaryOperator::Multiply, left, right } => {
+                assert_eq!(*left, pi);
+                assert_eq!(*right, var("x"));
+            }
+            _ => panic!("期望得到 πx"),
+        }
+    }
+    
+    #[test]
+    fn test_integrate_variables() {
+        let engine = CalculusEngine::new();
+        
+        // x 对 x 的积分：∫x dx = x²/2
+        let result = engine.integrate(&var("x"), "x").unwrap();
+        match result {
+            Expression::BinaryOp { op: BinaryOperator::Divide, left, right } => {
+                match (left.as_ref(), right.as_ref()) {
+                    (Expression::BinaryOp { op: BinaryOperator::Power, left: base, right: exp }, 
+                     Expression::Number(Number::Integer(n))) => {
+                        assert_eq!(**base, var("x"));
+                        assert_eq!(**exp, int(2));
+                        assert_eq!(n, &BigInt::from(2));
+                    }
+                    _ => panic!("期望得到 x²/2"),
+                }
+            }
+            _ => panic!("期望得到除法表达式"),
+        }
+        
+        // y 对 x 的积分：∫y dx = yx
+        let result = engine.integrate(&var("y"), "x").unwrap();
+        match result {
+            Expression::BinaryOp { op: BinaryOperator::Multiply, left, right } => {
+                assert_eq!(*left, var("y"));
+                assert_eq!(*right, var("x"));
+            }
+            _ => panic!("期望得到 yx"),
+        }
+    }
+    
+    #[test]
+    fn test_integrate_addition() {
+        let engine = CalculusEngine::new();
+        
+        // (x + 5) 的积分：∫(x + 5) dx = x²/2 + 5x
+        let expr = binop(BinaryOperator::Add, var("x"), int(5));
+        let result = engine.integrate(&expr, "x").unwrap();
+        
+        // 结果应该是加法表达式
+        match result {
+            Expression::BinaryOp { op: BinaryOperator::Add, .. } => {
+                // 验证结构正确
+            }
+            _ => panic!("期望得到加法表达式"),
+        }
+    }
+    
+    #[test]
+    fn test_integrate_power() {
+        let engine = CalculusEngine::new();
+        
+        // x² 的积分：∫x² dx = x³/3
+        let expr = binop(BinaryOperator::Power, var("x"), int(2));
+        let result = engine.integrate(&expr, "x").unwrap();
+        
+        match result {
+            Expression::BinaryOp { op: BinaryOperator::Divide, left, right } => {
+                match (left.as_ref(), right.as_ref()) {
+                    (Expression::BinaryOp { op: BinaryOperator::Power, left: base, right: exp }, 
+                     Expression::BinaryOp { op: BinaryOperator::Add, .. }) => {
+                        assert_eq!(**base, var("x"));
+                        // 指数应该是 2 + 1 = 3
+                    }
+                    _ => panic!("期望得到 x³/(2+1) 的形式"),
+                }
+            }
+            _ => panic!("期望得到除法表达式"),
+        }
+    }
+    
+    #[test]
+    fn test_integrate_power_negative_one() {
+        let engine = CalculusEngine::new();
+        
+        // x^(-1) 的积分：∫x^(-1) dx = ∫(1/x) dx = ln|x|
+        let expr = binop(BinaryOperator::Power, var("x"), int(-1));
+        let result = engine.integrate(&expr, "x").unwrap();
+        
+        match result {
+            Expression::UnaryOp { op: UnaryOperator::Ln, operand } => {
+                match operand.as_ref() {
+                    Expression::UnaryOp { op: UnaryOperator::Abs, operand: inner } => {
+                        assert_eq!(**inner, var("x"));
+                    }
+                    _ => panic!("期望得到 ln|x|"),
+                }
+            }
+            _ => panic!("期望得到 ln 表达式"),
+        }
+    }
+    
+    #[test]
+    fn test_integrate_trigonometric() {
+        let engine = CalculusEngine::new();
+        
+        // sin(x) 的积分：∫sin(x) dx = -cos(x)
+        let sin_x = unop(UnaryOperator::Sin, var("x"));
+        let result = engine.integrate(&sin_x, "x").unwrap();
+        
+        match result {
+            Expression::UnaryOp { op: UnaryOperator::Negate, operand } => {
+                match operand.as_ref() {
+                    Expression::UnaryOp { op: UnaryOperator::Cos, operand: inner } => {
+                        assert_eq!(**inner, var("x"));
+                    }
+                    _ => panic!("期望得到 -cos(x)"),
+                }
+            }
+            _ => panic!("期望得到负号表达式"),
+        }
+        
+        // cos(x) 的积分：∫cos(x) dx = sin(x)
+        let cos_x = unop(UnaryOperator::Cos, var("x"));
+        let result = engine.integrate(&cos_x, "x").unwrap();
+        
+        match result {
+            Expression::UnaryOp { op: UnaryOperator::Sin, operand } => {
+                assert_eq!(operand.as_ref(), &var("x"));
+            }
+            _ => panic!("期望得到 sin(x)"),
+        }
+    }
+    
+    #[test]
+    fn test_integrate_exponential() {
+        let engine = CalculusEngine::new();
+        
+        // e^x 的积分：∫e^x dx = e^x
+        let exp_x = unop(UnaryOperator::Exp, var("x"));
+        let result = engine.integrate(&exp_x, "x").unwrap();
+        
+        match result {
+            Expression::UnaryOp { op: UnaryOperator::Exp, operand } => {
+                assert_eq!(operand.as_ref(), &var("x"));
+            }
+            _ => panic!("期望得到 e^x"),
+        }
+    }
+    
+    #[test]
+    fn test_integrate_constant_multiplication() {
+        let engine = CalculusEngine::new();
+        
+        // 3x 的积分：∫3x dx = 3 * (x²/2) = 3x²/2
+        let expr = binop(BinaryOperator::Multiply, int(3), var("x"));
+        let result = engine.integrate(&expr, "x").unwrap();
+        
+        // 结果应该是乘法表达式
+        match result {
+            Expression::BinaryOp { op: BinaryOperator::Multiply, .. } => {
+                // 验证结构正确
+            }
+            _ => panic!("期望得到乘法表达式"),
+        }
     }
 }
