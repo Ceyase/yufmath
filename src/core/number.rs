@@ -544,18 +544,14 @@ impl Number {
                 (a.clone(), Number::Real(BigDecimal::from(i.clone())))
             }
             (Number::Rational(r), Number::Real(_)) => {
-                if let Some(decimal) = r.to_f64().and_then(BigDecimal::from_f64) {
-                    (Number::Real(decimal), b.clone())
-                } else {
-                    (a.clone(), b.clone())
-                }
+                // 直接将有理数转换为 BigDecimal，避免通过 f64 的精度损失
+                let decimal = BigDecimal::new(r.numer().clone(), 0) / BigDecimal::new(r.denom().clone(), 0);
+                (Number::Real(decimal), b.clone())
             }
             (Number::Real(_), Number::Rational(r)) => {
-                if let Some(decimal) = r.to_f64().and_then(BigDecimal::from_f64) {
-                    (a.clone(), Number::Real(decimal))
-                } else {
-                    (a.clone(), b.clone())
-                }
+                // 直接将有理数转换为 BigDecimal，避免通过 f64 的精度损失
+                let decimal = BigDecimal::new(r.numer().clone(), 0) / BigDecimal::new(r.denom().clone(), 0);
+                (a.clone(), Number::Real(decimal))
             }
             
             // 到浮点数的转换（精度损失）

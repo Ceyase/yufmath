@@ -8,6 +8,10 @@ pub mod number;
 pub mod constants;
 pub mod operators;
 pub mod types;
+pub mod high_precision;
+
+#[cfg(test)]
+pub mod precision_test;
 
 // 重新导出主要类型
 pub use expression::Expression;
