@@ -6,7 +6,7 @@
 use num_bigint::{BigInt, ToBigInt};
 use num_rational::BigRational;
 use bigdecimal::{BigDecimal, Zero, ToPrimitive, FromPrimitive};
-use num_traits::{Zero as NumZero, One as NumOne, ToPrimitive as NumToPrimitive, FromPrimitive as NumFromPrimitive, Signed};
+use num_traits::{Zero as NumZero, One as NumOne, FromPrimitive as NumFromPrimitive, Signed};
 use std::fmt::{self, Display, Debug};
 
 /// 支持多种数值类型的统一表示，优先使用精确表示
@@ -106,11 +106,24 @@ impl Number {
         }
     }
     
+    /// 检查是否为二
+    pub fn is_two(&self) -> bool {
+        match self {
+            Number::Integer(i) => i == &BigInt::from(2),
+            Number::Rational(r) => r == &BigRational::from(BigInt::from(2)),
+            Number::Real(r) => r == &BigDecimal::from(2),
+            Number::Float(f) => *f == 2.0,
+            Number::Complex { real, imaginary } => real.is_two() && imaginary.is_zero(),
+            Number::Constant(_) => false,
+            Number::Symbolic(_) => false,
+        }
+    }
+    
     /// 获取数值近似值（仅在需要时使用）
     pub fn approximate(&self) -> f64 {
         match self {
-            Number::Integer(i) => NumToPrimitive::to_f64(i).unwrap_or(f64::INFINITY),
-            Number::Rational(r) => NumToPrimitive::to_f64(r).unwrap_or(f64::NAN),
+            Number::Integer(i) => ToPrimitive::to_f64(i).unwrap_or(f64::INFINITY),
+            Number::Rational(r) => ToPrimitive::to_f64(r).unwrap_or(f64::NAN),
             Number::Real(r) => ToPrimitive::to_f64(r).unwrap_or(f64::NAN),
             Number::Complex { real, imaginary } => {
                 // 对于复数，返回模长
@@ -441,6 +454,47 @@ impl Number {
             Number::Float(f) => Self::float_to_rational(*f),
             Number::Complex { real, imaginary } if imaginary.is_zero() => {
                 real.to_rational()
+            }
+            _ => None,
+        }
+    }
+    
+    /// 尝试转换为 f64
+    pub fn to_f64(&self) -> Option<f64> {
+        match self {
+            Number::Integer(i) => i.to_f64(),
+            Number::Rational(r) => {
+                let num = r.numer().to_f64()?;
+                let den = r.denom().to_f64()?;
+                Some(num / den)
+            }
+            Number::Real(r) => r.to_f64(),
+            Number::Float(f) => Some(*f),
+            Number::Complex { real, imaginary } if imaginary.is_zero() => {
+                real.to_f64()
+            }
+            Number::Constant(c) => Some(c.approximate_value()),
+            _ => None,
+        }
+    }
+    
+    /// 尝试转换为 i64
+    pub fn to_i64(&self) -> Option<i64> {
+        match self {
+            Number::Integer(i) => i.to_i64(),
+            Number::Rational(r) if r.denom() == &BigInt::from(1) => {
+                r.numer().to_i64()
+            }
+            Number::Real(r) => {
+                if let Some(int_val) = r.to_bigint() {
+                    int_val.to_i64()
+                } else {
+                    None
+                }
+            }
+            Number::Float(f) if f.fract() == 0.0 => Some(*f as i64),
+            Number::Complex { real, imaginary } if imaginary.is_zero() => {
+                real.to_i64()
             }
             _ => None,
         }

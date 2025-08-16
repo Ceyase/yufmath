@@ -454,8 +454,479 @@ impl Simplifier {
     
     /// 简化函数调用
     fn simplify_function(&self, name: &str, args: &[Expression]) -> Result<Expression, ComputeError> {
-        // 暂时不实现函数简化
-        Ok(Expression::function(name, args.to_vec()))
+        // 如果参数都是常量，尝试计算函数值
+        if args.iter().all(|arg| arg.is_constant()) {
+            if let Ok(result) = self.evaluate_function(name, args) {
+                return Ok(result);
+            }
+        }
+        
+        // 应用特定的函数简化规则
+        match name {
+            "ln" | "log" => self.simplify_logarithm(args),
+            "sin" => self.simplify_sine(args),
+            "cos" => self.simplify_cosine(args),
+            "tan" => self.simplify_tangent(args),
+            "exp" => self.simplify_exponential(args),
+            "sqrt" => self.simplify_square_root(args),
+            "abs" => self.simplify_absolute_value_function(args),
+            _ => Ok(Expression::function(name, args.to_vec())),
+        }
+    }
+    
+    /// 计算函数值（当参数都是常量时）
+    fn evaluate_function(&self, name: &str, args: &[Expression]) -> Result<Expression, ComputeError> {
+        if args.is_empty() {
+            return Err(ComputeError::domain_error("函数需要至少一个参数"));
+        }
+        
+        match name {
+            "ln" | "log" => {
+                if args.len() != 1 {
+                    return Err(ComputeError::domain_error("ln 函数需要恰好一个参数"));
+                }
+                self.evaluate_logarithm(&args[0])
+            }
+            "sin" => {
+                if args.len() != 1 {
+                    return Err(ComputeError::domain_error("sin 函数需要恰好一个参数"));
+                }
+                self.evaluate_sine(&args[0])
+            }
+            "cos" => {
+                if args.len() != 1 {
+                    return Err(ComputeError::domain_error("cos 函数需要恰好一个参数"));
+                }
+                self.evaluate_cosine(&args[0])
+            }
+            "tan" => {
+                if args.len() != 1 {
+                    return Err(ComputeError::domain_error("tan 函数需要恰好一个参数"));
+                }
+                self.evaluate_tangent(&args[0])
+            }
+            "exp" => {
+                if args.len() != 1 {
+                    return Err(ComputeError::domain_error("exp 函数需要恰好一个参数"));
+                }
+                self.evaluate_exponential(&args[0])
+            }
+            "sqrt" => {
+                if args.len() != 1 {
+                    return Err(ComputeError::domain_error("sqrt 函数需要恰好一个参数"));
+                }
+                self.evaluate_square_root(&args[0])
+            }
+            "abs" => {
+                if args.len() != 1 {
+                    return Err(ComputeError::domain_error("abs 函数需要恰好一个参数"));
+                }
+                self.evaluate_absolute_value(&args[0])
+            }
+            "factorial" => {
+                if args.len() != 1 {
+                    return Err(ComputeError::domain_error("factorial 函数需要恰好一个参数"));
+                }
+                self.evaluate_factorial(&args[0])
+            }
+            _ => Err(ComputeError::UnsupportedOperation { 
+                operation: format!("未知函数: {}", name) 
+            }),
+        }
+    }
+    
+    /// 计算对数函数
+    fn evaluate_logarithm(&self, arg: &Expression) -> Result<Expression, ComputeError> {
+        match arg {
+            // ln(e) = 1
+            Expression::Constant(MathConstant::E) => {
+                Ok(Expression::Number(Number::integer(1)))
+            }
+            // ln(1) = 0
+            Expression::Number(n) if n.is_one() => {
+                Ok(Expression::Number(Number::integer(0)))
+            }
+            // ln(e^x) = x
+            Expression::Function { name, args } if name == "exp" && args.len() == 1 => {
+                Ok(args[0].clone())
+            }
+            // 数值计算
+            Expression::Number(n) => {
+                if let Some(f) = n.to_f64() {
+                    if f > 0.0 {
+                        Ok(Expression::Number(Number::Float(f.ln())))
+                    } else {
+                        Err(ComputeError::domain_error("对数的参数必须为正数"))
+                    }
+                } else {
+                    Err(ComputeError::UnsupportedOperation { 
+                        operation: "复数对数计算".to_string() 
+                    })
+                }
+            }
+            _ => Err(ComputeError::UnsupportedOperation { 
+                operation: "无法计算此对数表达式".to_string() 
+            }),
+        }
+    }
+    
+    /// 计算正弦函数
+    fn evaluate_sine(&self, arg: &Expression) -> Result<Expression, ComputeError> {
+        match arg {
+            // sin(0) = 0
+            Expression::Number(n) if n.is_zero() => {
+                Ok(Expression::Number(Number::integer(0)))
+            }
+            // sin(π/2) = 1
+            Expression::BinaryOp { op: BinaryOperator::Divide, left, right } 
+                if matches!(left.as_ref(), Expression::Constant(MathConstant::Pi)) 
+                && matches!(right.as_ref(), Expression::Number(n) if n.is_two()) => {
+                Ok(Expression::Number(Number::integer(1)))
+            }
+            // sin(π/4) = √2/2
+            Expression::BinaryOp { op: BinaryOperator::Divide, left, right } 
+                if matches!(left.as_ref(), Expression::Constant(MathConstant::Pi)) 
+                && matches!(right.as_ref(), Expression::Number(n) if n == &Number::integer(4)) => {
+                Ok(Expression::divide(
+                    Expression::function("sqrt", vec![Expression::Number(Number::integer(2))]),
+                    Expression::Number(Number::integer(2))
+                ))
+            }
+            // sin(π/6) = 1/2
+            Expression::BinaryOp { op: BinaryOperator::Divide, left, right } 
+                if matches!(left.as_ref(), Expression::Constant(MathConstant::Pi)) 
+                && matches!(right.as_ref(), Expression::Number(n) if n == &Number::integer(6)) => {
+                Ok(Expression::Number(Number::rational(1, 2)))
+            }
+            // sin(π/3) = √3/2
+            Expression::BinaryOp { op: BinaryOperator::Divide, left, right } 
+                if matches!(left.as_ref(), Expression::Constant(MathConstant::Pi)) 
+                && matches!(right.as_ref(), Expression::Number(n) if n == &Number::integer(3)) => {
+                Ok(Expression::divide(
+                    Expression::function("sqrt", vec![Expression::Number(Number::integer(3))]),
+                    Expression::Number(Number::integer(2))
+                ))
+            }
+            // sin(π) = 0
+            Expression::Constant(MathConstant::Pi) => {
+                Ok(Expression::Number(Number::integer(0)))
+            }
+            // 数值计算
+            Expression::Number(n) => {
+                if let Some(f) = n.to_f64() {
+                    Ok(Expression::Number(Number::Float(f.sin())))
+                } else {
+                    Err(ComputeError::UnsupportedOperation { 
+                        operation: "复数正弦计算".to_string() 
+                    })
+                }
+            }
+            _ => Err(ComputeError::UnsupportedOperation { 
+                operation: "无法计算此正弦表达式".to_string() 
+            }),
+        }
+    }
+    
+    /// 计算余弦函数
+    fn evaluate_cosine(&self, arg: &Expression) -> Result<Expression, ComputeError> {
+        match arg {
+            // cos(0) = 1
+            Expression::Number(n) if n.is_zero() => {
+                Ok(Expression::Number(Number::integer(1)))
+            }
+            // cos(π/2) = 0
+            Expression::BinaryOp { op: BinaryOperator::Divide, left, right } 
+                if matches!(left.as_ref(), Expression::Constant(MathConstant::Pi)) 
+                && matches!(right.as_ref(), Expression::Number(n) if n.is_two()) => {
+                Ok(Expression::Number(Number::integer(0)))
+            }
+            // cos(π/4) = √2/2
+            Expression::BinaryOp { op: BinaryOperator::Divide, left, right } 
+                if matches!(left.as_ref(), Expression::Constant(MathConstant::Pi)) 
+                && matches!(right.as_ref(), Expression::Number(n) if n == &Number::integer(4)) => {
+                Ok(Expression::divide(
+                    Expression::function("sqrt", vec![Expression::Number(Number::integer(2))]),
+                    Expression::Number(Number::integer(2))
+                ))
+            }
+            // cos(π/6) = √3/2
+            Expression::BinaryOp { op: BinaryOperator::Divide, left, right } 
+                if matches!(left.as_ref(), Expression::Constant(MathConstant::Pi)) 
+                && matches!(right.as_ref(), Expression::Number(n) if n == &Number::integer(6)) => {
+                Ok(Expression::divide(
+                    Expression::function("sqrt", vec![Expression::Number(Number::integer(3))]),
+                    Expression::Number(Number::integer(2))
+                ))
+            }
+            // cos(π/3) = 1/2
+            Expression::BinaryOp { op: BinaryOperator::Divide, left, right } 
+                if matches!(left.as_ref(), Expression::Constant(MathConstant::Pi)) 
+                && matches!(right.as_ref(), Expression::Number(n) if n == &Number::integer(3)) => {
+                Ok(Expression::Number(Number::rational(1, 2)))
+            }
+            // cos(π) = -1
+            Expression::Constant(MathConstant::Pi) => {
+                Ok(Expression::Number(Number::integer(-1)))
+            }
+            // 数值计算
+            Expression::Number(n) => {
+                if let Some(f) = n.to_f64() {
+                    Ok(Expression::Number(Number::Float(f.cos())))
+                } else {
+                    Err(ComputeError::UnsupportedOperation { 
+                        operation: "复数余弦计算".to_string() 
+                    })
+                }
+            }
+            _ => Err(ComputeError::UnsupportedOperation { 
+                operation: "无法计算此余弦表达式".to_string() 
+            }),
+        }
+    }
+    
+    /// 计算正切函数
+    fn evaluate_tangent(&self, arg: &Expression) -> Result<Expression, ComputeError> {
+        match arg {
+            // tan(0) = 0
+            Expression::Number(n) if n.is_zero() => {
+                Ok(Expression::Number(Number::integer(0)))
+            }
+            // tan(π/4) = 1
+            Expression::BinaryOp { op: BinaryOperator::Divide, left, right } 
+                if matches!(left.as_ref(), Expression::Constant(MathConstant::Pi)) 
+                && matches!(right.as_ref(), Expression::Number(n) if n == &Number::integer(4)) => {
+                Ok(Expression::Number(Number::integer(1)))
+            }
+            // tan(π/6) = √3/3
+            Expression::BinaryOp { op: BinaryOperator::Divide, left, right } 
+                if matches!(left.as_ref(), Expression::Constant(MathConstant::Pi)) 
+                && matches!(right.as_ref(), Expression::Number(n) if n == &Number::integer(6)) => {
+                Ok(Expression::divide(
+                    Expression::function("sqrt", vec![Expression::Number(Number::integer(3))]),
+                    Expression::Number(Number::integer(3))
+                ))
+            }
+            // tan(π/3) = √3
+            Expression::BinaryOp { op: BinaryOperator::Divide, left, right } 
+                if matches!(left.as_ref(), Expression::Constant(MathConstant::Pi)) 
+                && matches!(right.as_ref(), Expression::Number(n) if n == &Number::integer(3)) => {
+                Ok(Expression::function("sqrt", vec![Expression::Number(Number::integer(3))]))
+            }
+            // 数值计算
+            Expression::Number(n) => {
+                if let Some(f) = n.to_f64() {
+                    Ok(Expression::Number(Number::Float(f.tan())))
+                } else {
+                    Err(ComputeError::UnsupportedOperation { 
+                        operation: "复数正切计算".to_string() 
+                    })
+                }
+            }
+            _ => Err(ComputeError::UnsupportedOperation { 
+                operation: "无法计算此正切表达式".to_string() 
+            }),
+        }
+    }
+    
+    /// 计算指数函数
+    fn evaluate_exponential(&self, arg: &Expression) -> Result<Expression, ComputeError> {
+        match arg {
+            // exp(0) = 1
+            Expression::Number(n) if n.is_zero() => {
+                Ok(Expression::Number(Number::integer(1)))
+            }
+            // exp(1) = e
+            Expression::Number(n) if n.is_one() => {
+                Ok(Expression::Constant(MathConstant::E))
+            }
+            // exp(ln(x)) = x
+            Expression::Function { name, args } if name == "ln" && args.len() == 1 => {
+                Ok(args[0].clone())
+            }
+            // 数值计算
+            Expression::Number(n) => {
+                if let Some(f) = n.to_f64() {
+                    Ok(Expression::Number(Number::Float(f.exp())))
+                } else {
+                    Err(ComputeError::UnsupportedOperation { 
+                        operation: "复数指数计算".to_string() 
+                    })
+                }
+            }
+            _ => Err(ComputeError::UnsupportedOperation { 
+                operation: "无法计算此指数表达式".to_string() 
+            }),
+        }
+    }
+    
+    /// 计算平方根函数
+    fn evaluate_square_root(&self, arg: &Expression) -> Result<Expression, ComputeError> {
+        match arg {
+            // sqrt(0) = 0
+            Expression::Number(n) if n.is_zero() => {
+                Ok(Expression::Number(Number::integer(0)))
+            }
+            // sqrt(1) = 1
+            Expression::Number(n) if n.is_one() => {
+                Ok(Expression::Number(Number::integer(1)))
+            }
+            // sqrt(4) = 2, sqrt(9) = 3, etc.
+            Expression::Number(n) => {
+                if let Some(f) = n.to_f64() {
+                    if f >= 0.0 {
+                        let sqrt_val = f.sqrt();
+                        // 检查是否是完全平方数
+                        if sqrt_val.fract() == 0.0 {
+                            Ok(Expression::Number(Number::integer(sqrt_val as i64)))
+                        } else {
+                            Ok(Expression::Number(Number::Float(sqrt_val)))
+                        }
+                    } else {
+                        Err(ComputeError::domain_error("平方根的参数不能为负数"))
+                    }
+                } else {
+                    Err(ComputeError::UnsupportedOperation { 
+                        operation: "复数平方根计算".to_string() 
+                    })
+                }
+            }
+            _ => Err(ComputeError::UnsupportedOperation { 
+                operation: "无法计算此平方根表达式".to_string() 
+            }),
+        }
+    }
+    
+    /// 计算绝对值函数
+    fn evaluate_absolute_value(&self, arg: &Expression) -> Result<Expression, ComputeError> {
+        match arg {
+            Expression::Number(n) => {
+                Ok(Expression::Number(n.abs()))
+            }
+            _ => Err(ComputeError::UnsupportedOperation { 
+                operation: "无法计算此绝对值表达式".to_string() 
+            }),
+        }
+    }
+    
+    /// 计算阶乘函数
+    fn evaluate_factorial(&self, arg: &Expression) -> Result<Expression, ComputeError> {
+        match arg {
+            Expression::Number(n) => {
+                if let Some(i) = n.to_i64() {
+                    if i >= 0 && i <= 20 { // 限制在合理范围内
+                        let mut result = 1i64;
+                        for j in 1..=i {
+                            result *= j;
+                        }
+                        Ok(Expression::Number(Number::integer(result)))
+                    } else if i < 0 {
+                        Err(ComputeError::domain_error("阶乘的参数不能为负数"))
+                    } else {
+                        Err(ComputeError::domain_error("阶乘的参数过大"))
+                    }
+                } else {
+                    Err(ComputeError::domain_error("阶乘的参数必须为整数"))
+                }
+            }
+            _ => Err(ComputeError::UnsupportedOperation { 
+                operation: "无法计算此阶乘表达式".to_string() 
+            }),
+        }
+    }
+    
+    /// 简化对数函数（非常量参数）
+    fn simplify_logarithm(&self, args: &[Expression]) -> Result<Expression, ComputeError> {
+        if args.len() != 1 {
+            return Ok(Expression::function("ln", args.to_vec()));
+        }
+        
+        match &args[0] {
+            // ln(e^x) = x
+            Expression::Function { name, args: inner_args } if name == "exp" && inner_args.len() == 1 => {
+                Ok(inner_args[0].clone())
+            }
+            _ => Ok(Expression::function("ln", args.to_vec())),
+        }
+    }
+    
+    /// 简化正弦函数（非常量参数）
+    fn simplify_sine(&self, args: &[Expression]) -> Result<Expression, ComputeError> {
+        if args.len() != 1 {
+            return Ok(Expression::function("sin", args.to_vec()));
+        }
+        
+        // 这里可以添加更多的三角恒等式简化
+        Ok(Expression::function("sin", args.to_vec()))
+    }
+    
+    /// 简化余弦函数（非常量参数）
+    fn simplify_cosine(&self, args: &[Expression]) -> Result<Expression, ComputeError> {
+        if args.len() != 1 {
+            return Ok(Expression::function("cos", args.to_vec()));
+        }
+        
+        // 这里可以添加更多的三角恒等式简化
+        Ok(Expression::function("cos", args.to_vec()))
+    }
+    
+    /// 简化正切函数（非常量参数）
+    fn simplify_tangent(&self, args: &[Expression]) -> Result<Expression, ComputeError> {
+        if args.len() != 1 {
+            return Ok(Expression::function("tan", args.to_vec()));
+        }
+        
+        // 这里可以添加更多的三角恒等式简化
+        Ok(Expression::function("tan", args.to_vec()))
+    }
+    
+    /// 简化指数函数（非常量参数）
+    fn simplify_exponential(&self, args: &[Expression]) -> Result<Expression, ComputeError> {
+        if args.len() != 1 {
+            return Ok(Expression::function("exp", args.to_vec()));
+        }
+        
+        match &args[0] {
+            // exp(ln(x)) = x
+            Expression::Function { name, args: inner_args } if name == "ln" && inner_args.len() == 1 => {
+                Ok(inner_args[0].clone())
+            }
+            _ => Ok(Expression::function("exp", args.to_vec())),
+        }
+    }
+    
+    /// 简化平方根函数（非常量参数）
+    fn simplify_square_root(&self, args: &[Expression]) -> Result<Expression, ComputeError> {
+        if args.len() != 1 {
+            return Ok(Expression::function("sqrt", args.to_vec()));
+        }
+        
+        match &args[0] {
+            // sqrt(x^2) = |x|
+            Expression::BinaryOp { op: BinaryOperator::Power, left, right } 
+                if matches!(right.as_ref(), Expression::Number(n) if n.is_two()) => {
+                Ok(Expression::function("abs", vec![left.as_ref().clone()]))
+            }
+            _ => Ok(Expression::function("sqrt", args.to_vec())),
+        }
+    }
+    
+    /// 简化绝对值函数（非常量参数）
+    fn simplify_absolute_value_function(&self, args: &[Expression]) -> Result<Expression, ComputeError> {
+        if args.len() != 1 {
+            return Ok(Expression::function("abs", args.to_vec()));
+        }
+        
+        match &args[0] {
+            // abs(abs(x)) = abs(x)
+            Expression::Function { name, args: inner_args } if name == "abs" && inner_args.len() == 1 => {
+                Ok(Expression::function("abs", inner_args.clone()))
+            }
+            // abs(-x) = abs(x)
+            Expression::UnaryOp { op: UnaryOperator::Negate, operand } => {
+                Ok(Expression::function("abs", vec![operand.as_ref().clone()]))
+            }
+            _ => Ok(Expression::function("abs", args.to_vec())),
+        }
     }
     
     /// 检查表达式是否为零
