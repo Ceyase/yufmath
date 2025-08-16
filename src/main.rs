@@ -132,9 +132,11 @@ fn handle_simplify(yuf: &Yufmath, expression: &str, args: &CliArgs) -> Result<()
     
     let expr = yuf.parse(expression)?;
     let simplified = yuf.simplify(&expr)?;
-    // 注意：这里需要使用 formatter 来格式化结果
-    // 由于当前 Yufmath 结构体没有公开 formatter，我们暂时使用 Debug 格式
-    let result = format!("{:?}", simplified);
+    
+    // 使用格式化器来正确显示简化后的表达式
+    use yufmath::formatter::{StandardFormatter, Formatter};
+    let formatter = StandardFormatter::new();
+    let result = formatter.format(&simplified);
     
     if !args.quiet {
         println!("{}", result);
@@ -151,8 +153,11 @@ fn handle_diff(yuf: &Yufmath, expression: &str, variable: &str, args: &CliArgs) 
     
     let expr = yuf.parse(expression)?;
     let derivative = yuf.diff(&expr, variable)?;
-    // 暂时使用 Debug 格式，后续会添加 format 方法
-    let result = format!("{:?}", derivative);
+    
+    // 使用格式化器来正确显示求导结果
+    use yufmath::formatter::{StandardFormatter, Formatter};
+    let formatter = StandardFormatter::new();
+    let result = formatter.format(&derivative);
     
     if !args.quiet {
         println!("{}", result);
@@ -169,8 +174,11 @@ fn handle_integrate(yuf: &Yufmath, expression: &str, variable: &str, args: &CliA
     
     let expr = yuf.parse(expression)?;
     let integral = yuf.integrate(&expr, variable)?;
-    // 暂时使用 Debug 格式，后续会添加 format 方法
-    let result = format!("{:?}", integral);
+    
+    // 使用格式化器来正确显示积分结果
+    use yufmath::formatter::{StandardFormatter, Formatter};
+    let formatter = StandardFormatter::new();
+    let result = formatter.format(&integral);
     
     if !args.quiet {
         println!("{}", result);
@@ -230,7 +238,11 @@ fn handle_limit(yuf: &Yufmath, expression: &str, variable: &str, point: &str, ar
     let expr = yuf.parse(expression)?;
     let point_expr = yuf.parse(point)?;
     let limit_result = yuf.limit(&expr, variable, &point_expr)?;
-    let result = format!("{:?}", limit_result);
+    
+    // 使用格式化器来正确显示极限结果
+    use yufmath::formatter::{StandardFormatter, Formatter};
+    let formatter = StandardFormatter::new();
+    let result = formatter.format(&limit_result);
     
     if !args.quiet {
         println!("{}", result);
@@ -248,7 +260,11 @@ fn handle_series(yuf: &Yufmath, expression: &str, variable: &str, point: &str, o
     let expr = yuf.parse(expression)?;
     let point_expr = yuf.parse(point)?;
     let series_result = yuf.series(&expr, variable, &point_expr, order)?;
-    let result = format!("{:?}", series_result);
+    
+    // 使用格式化器来正确显示级数展开结果
+    use yufmath::formatter::{StandardFormatter, Formatter};
+    let formatter = StandardFormatter::new();
+    let result = formatter.format(&series_result);
     
     if !args.quiet {
         println!("{}", result);

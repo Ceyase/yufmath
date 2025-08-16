@@ -184,6 +184,7 @@ pub use api::{
     PrecisionConfig,
     ParallelConfig,
     CacheConfig,
+    MemoryConfig,
     ComputeProgress,
     ComputePhase,
     PerformanceStats, 
@@ -197,7 +198,7 @@ pub use api::{
 pub use core::{
     Expression, Number, MathConstant, BinaryOperator, UnaryOperator,
     SharedExpression, CowExpression, MemoryManager, MemoryMonitor,
-    MemoryStats, MemoryConfig, ExpressionComparator, ExpressionBuilder, ExpressionFactory
+    MemoryStats, ExpressionComparator, ExpressionBuilder, ExpressionFactory
 };
 pub use engine::{
     ComputeEngine, ComputeError,

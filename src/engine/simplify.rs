@@ -7,6 +7,7 @@ use crate::engine::error::ComputeError;
 use std::collections::HashMap;
 use num_bigint::BigInt;
 use num_rational::BigRational;
+use num_traits::ToPrimitive;
 
 /// 表达式简化器
 pub struct Simplifier {
@@ -159,7 +160,7 @@ impl Simplifier {
     }
     
     /// 简化二元运算
-    fn simplify_binary_op(&self, op: &BinaryOperator, left: &Expression, right: &Expression) -> Result<Expression, ComputeError> {
+    fn simplify_binary_op(&mut self, op: &BinaryOperator, left: &Expression, right: &Expression) -> Result<Expression, ComputeError> {
         match op {
             BinaryOperator::Add => self.simplify_addition(left, right),
             BinaryOperator::Subtract => self.simplify_subtraction(left, right),
@@ -323,7 +324,7 @@ impl Simplifier {
     }
     
     /// 简化幂运算
-    fn simplify_power(&self, base: &Expression, exponent: &Expression) -> Result<Expression, ComputeError> {
+    fn simplify_power(&mut self, base: &Expression, exponent: &Expression) -> Result<Expression, ComputeError> {
         // 规则：x^0 = 1 (x ≠ 0)
         if self.is_zero(exponent) && !self.is_zero(base) {
             return Ok(Expression::Number(Number::one()));
@@ -349,6 +350,11 @@ impl Simplifier {
             if let Some(result) = self.compute_integer_power(a, b) {
                 return Ok(Expression::Number(result));
             }
+        }
+        
+        // 规则：二项式展开 (a+b)^n 或 (a-b)^n，当 n 是小正整数时
+        if let Some(expanded) = self.try_binomial_expansion(base, exponent)? {
+            return Ok(expanded);
         }
         
         // 规则：(x^a)^b = x^(a*b)
@@ -1227,6 +1233,108 @@ impl Simplifier {
             
             _ => false,
         }
+    }
+    
+    /// 尝试二项式展开
+    fn try_binomial_expansion(&mut self, base: &Expression, exponent: &Expression) -> Result<Option<Expression>, ComputeError> {
+        // 只处理小正整数指数的情况
+        if let Expression::Number(Number::Integer(n)) = exponent {
+            if let Some(exp_val) = n.to_u32() {
+                if exp_val <= 6 && exp_val >= 2 { // 限制在 2 到 6 次幂
+                    return self.expand_binomial_power(base, exp_val);
+                }
+            }
+        }
+        Ok(None)
+    }
+    
+    /// 展开二项式幂
+    fn expand_binomial_power(&mut self, base: &Expression, n: u32) -> Result<Option<Expression>, ComputeError> {
+        match base {
+            // (a + b)^n 的展开
+            Expression::BinaryOp { op: BinaryOperator::Add, left: a, right: b } => {
+                Ok(Some(self.binomial_expansion(a, b, n, true)?))
+            }
+            // (a - b)^n 的展开
+            Expression::BinaryOp { op: BinaryOperator::Subtract, left: a, right: b } => {
+                Ok(Some(self.binomial_expansion(a, b, n, false)?))
+            }
+            _ => Ok(None),
+        }
+    }
+    
+    /// 二项式定理展开：(a ± b)^n
+    fn binomial_expansion(&mut self, a: &Expression, b: &Expression, n: u32, is_add: bool) -> Result<Expression, ComputeError> {
+        let mut terms = Vec::new();
+        
+        for k in 0..=n {
+            // 计算二项式系数 C(n, k)
+            let coeff = self.binomial_coefficient(n, k);
+            
+            // 计算 a^(n-k)
+            let a_power = if n - k == 0 {
+                Expression::Number(Number::one())
+            } else if n - k == 1 {
+                a.clone()
+            } else {
+                Expression::power(a.clone(), Expression::Number(Number::integer((n - k) as i64)))
+            };
+            
+            // 计算 b^k
+            let b_power = if k == 0 {
+                Expression::Number(Number::one())
+            } else if k == 1 {
+                b.clone()
+            } else {
+                Expression::power(b.clone(), Expression::Number(Number::integer(k as i64)))
+            };
+            
+            // 计算符号：对于 (a - b)^n，奇数项 k 为负
+            let sign = if is_add || k % 2 == 0 { 1 } else { -1 };
+            
+            // 构造项：coeff * sign * a^(n-k) * b^k
+            let mut term = Expression::Number(Number::integer(coeff as i64 * sign));
+            
+            // 乘以 a^(n-k)
+            if !matches!(a_power, Expression::Number(Number::Integer(ref i)) if i == &BigInt::from(1)) {
+                term = Expression::multiply(term, a_power);
+            }
+            
+            // 乘以 b^k
+            if !matches!(b_power, Expression::Number(Number::Integer(ref i)) if i == &BigInt::from(1)) {
+                term = Expression::multiply(term, b_power);
+            }
+            
+            terms.push(term);
+        }
+        
+        // 将所有项相加
+        let mut result = terms[0].clone();
+        for term in terms.into_iter().skip(1) {
+            result = Expression::add(result, term);
+        }
+        
+        // 简化结果
+        self.simplify_recursive(&result)
+    }
+    
+    /// 计算二项式系数 C(n, k)
+    fn binomial_coefficient(&self, n: u32, k: u32) -> u64 {
+        if k > n {
+            return 0;
+        }
+        if k == 0 || k == n {
+            return 1;
+        }
+        
+        let k = k.min(n - k); // 利用对称性
+        let mut result = 1u64;
+        
+        for i in 0..k {
+            result = result * (n - i) as u64 / (i + 1) as u64;
+        }
+        
+        result
     }
 }
 
