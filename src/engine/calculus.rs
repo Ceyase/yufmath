@@ -994,15 +994,158 @@ impl CalculusEngine {
     fn integrate_function(
         &self, 
         name: &str, 
-        _args: &[Expression], 
-        _var: &str
+        args: &[Expression], 
+        var: &str
     ) -> Result<Expression, ComputeError> {
-        match name {
-            // 对于函数调用，这里简化处理
-            // 实际实现中应该支持更多内置函数
-            _ => Err(ComputeError::UnsupportedOperation { 
-                operation: format!("对函数 {} 积分", name) 
-            }),
+        if args.len() != 1 {
+            return Err(ComputeError::UnsupportedOperation { 
+                operation: format!("函数 {} 的多参数积分暂不支持", name) 
+            });
+        }
+        
+        let arg = &args[0];
+        
+        // 检查参数是否为简单变量
+        if let Expression::Variable(arg_var) = arg {
+            if arg_var == var {
+                // 简单情况：函数参数就是积分变量
+                match name {
+                    // 三角函数积分
+                    "sin" => {
+                        // ∫sin(x) dx = -cos(x)
+                        Ok(Expression::UnaryOp {
+                            op: UnaryOperator::Negate,
+                            operand: Box::new(Expression::Function {
+                                name: "cos".to_string(),
+                                args: vec![arg.clone()],
+                            }),
+                        })
+                    }
+                    
+                    "cos" => {
+                        // ∫cos(x) dx = sin(x)
+                        Ok(Expression::Function {
+                            name: "sin".to_string(),
+                            args: vec![arg.clone()],
+                        })
+                    }
+                    
+                    "tan" => {
+                        // ∫tan(x) dx = -ln|cos(x)|
+                        let cos_x = Expression::Function {
+                            name: "cos".to_string(),
+                            args: vec![arg.clone()],
+                        };
+                        
+                        let abs_cos = Expression::Function {
+                            name: "abs".to_string(),
+                            args: vec![cos_x],
+                        };
+                        
+                        let ln_abs_cos = Expression::Function {
+                            name: "ln".to_string(),
+                            args: vec![abs_cos],
+                        };
+                        
+                        Ok(Expression::UnaryOp {
+                            op: UnaryOperator::Negate,
+                            operand: Box::new(ln_abs_cos),
+                        })
+                    }
+                    
+                    // 双曲函数积分
+                    "sinh" => {
+                        // ∫sinh(x) dx = cosh(x)
+                        Ok(Expression::Function {
+                            name: "cosh".to_string(),
+                            args: vec![arg.clone()],
+                        })
+                    }
+                    
+                    "cosh" => {
+                        // ∫cosh(x) dx = sinh(x)
+                        Ok(Expression::Function {
+                            name: "sinh".to_string(),
+                            args: vec![arg.clone()],
+                        })
+                    }
+                    
+                    // 指数函数积分
+                    "exp" => {
+                        // ∫e^x dx = e^x
+                        Ok(Expression::Function {
+                            name: "exp".to_string(),
+                            args: vec![arg.clone()],
+                        })
+                    }
+                    
+                    // 对数函数积分（部分积分）
+                    "ln" | "log" => {
+                        // ∫ln(x) dx = x*ln(x) - x
+                        let x_ln_x = Expression::BinaryOp {
+                            op: BinaryOperator::Multiply,
+                            left: Box::new(arg.clone()),
+                            right: Box::new(Expression::Function {
+                                name: "ln".to_string(),
+                                args: vec![arg.clone()],
+                            }),
+                        };
+                        
+                        Ok(Expression::BinaryOp {
+                            op: BinaryOperator::Subtract,
+                            left: Box::new(x_ln_x),
+                            right: Box::new(arg.clone()),
+                        })
+                    }
+                    
+                    // 平方根函数积分
+                    "sqrt" => {
+                        // ∫√x dx = (2/3)x^(3/2)
+                        let three_halves = Expression::BinaryOp {
+                            op: BinaryOperator::Divide,
+                            left: Box::new(Expression::Number(Number::Integer(BigInt::from(3)))),
+                            right: Box::new(Expression::Number(Number::Integer(BigInt::from(2)))),
+                        };
+                        
+                        let x_power_three_halves = Expression::BinaryOp {
+                            op: BinaryOperator::Power,
+                            left: Box::new(arg.clone()),
+                            right: Box::new(three_halves),
+                        };
+                        
+                        let two_thirds = Expression::BinaryOp {
+                            op: BinaryOperator::Divide,
+                            left: Box::new(Expression::Number(Number::Integer(BigInt::from(2)))),
+                            right: Box::new(Expression::Number(Number::Integer(BigInt::from(3)))),
+                        };
+                        
+                        Ok(Expression::BinaryOp {
+                            op: BinaryOperator::Multiply,
+                            left: Box::new(two_thirds),
+                            right: Box::new(x_power_three_halves),
+                        })
+                    }
+                    
+                    _ => Err(ComputeError::UnsupportedOperation { 
+                        operation: format!("对函数 {} 积分", name) 
+                    }),
+                }
+            } else {
+                // 参数是其他变量，视为常数
+                Ok(Expression::BinaryOp {
+                    op: BinaryOperator::Multiply,
+                    left: Box::new(Expression::Function {
+                        name: name.to_string(),
+                        args: args.to_vec(),
+                    }),
+                    right: Box::new(Expression::Variable(var.to_string())),
+                })
+            }
+        } else {
+            // 复杂参数的情况，需要使用换元积分法
+            Err(ComputeError::UnsupportedOperation { 
+                operation: format!("对复杂参数函数 {} 积分", name) 
+            })
         }
     }
     
@@ -1010,12 +1153,306 @@ impl CalculusEngine {
     fn differentiate_function(
         &self, 
         name: &str, 
-        _args: &[Expression], 
-        _var: &str
+        args: &[Expression], 
+        var: &str
     ) -> Result<Expression, ComputeError> {
+        if args.len() != 1 {
+            return Err(ComputeError::UnsupportedOperation { 
+                operation: format!("函数 {} 的多参数求导暂不支持", name) 
+            });
+        }
+        
+        let arg = &args[0];
+        let arg_diff = self.differentiate(arg, var)?;
+        
         match name {
-            // 对于函数调用，这里简化处理
-            // 实际实现中应该支持更多内置函数
+            // 三角函数求导
+            "sin" => {
+                // (sin u)' = cos u * u'
+                let cos_arg = Expression::Function {
+                    name: "cos".to_string(),
+                    args: vec![arg.clone()],
+                };
+                
+                Ok(Expression::BinaryOp {
+                    op: BinaryOperator::Multiply,
+                    left: Box::new(cos_arg),
+                    right: Box::new(arg_diff),
+                })
+            }
+            
+            "cos" => {
+                // (cos u)' = -sin u * u'
+                let sin_arg = Expression::Function {
+                    name: "sin".to_string(),
+                    args: vec![arg.clone()],
+                };
+                
+                let neg_sin = Expression::UnaryOp {
+                    op: UnaryOperator::Negate,
+                    operand: Box::new(sin_arg),
+                };
+                
+                Ok(Expression::BinaryOp {
+                    op: BinaryOperator::Multiply,
+                    left: Box::new(neg_sin),
+                    right: Box::new(arg_diff),
+                })
+            }
+            
+            "tan" => {
+                // (tan u)' = sec^2 u * u' = u' / cos^2 u
+                let cos_arg = Expression::Function {
+                    name: "cos".to_string(),
+                    args: vec![arg.clone()],
+                };
+                
+                let cos_squared = Expression::BinaryOp {
+                    op: BinaryOperator::Power,
+                    left: Box::new(cos_arg),
+                    right: Box::new(Expression::Number(Number::Integer(BigInt::from(2)))),
+                };
+                
+                Ok(Expression::BinaryOp {
+                    op: BinaryOperator::Divide,
+                    left: Box::new(arg_diff),
+                    right: Box::new(cos_squared),
+                })
+            }
+            
+            // 反三角函数求导
+            "asin" => {
+                // (arcsin u)' = u' / √(1 - u²)
+                let u_squared = Expression::BinaryOp {
+                    op: BinaryOperator::Power,
+                    left: Box::new(arg.clone()),
+                    right: Box::new(Expression::Number(Number::Integer(BigInt::from(2)))),
+                };
+                
+                let one_minus_u_squared = Expression::BinaryOp {
+                    op: BinaryOperator::Subtract,
+                    left: Box::new(Expression::Number(Number::Integer(BigInt::from(1)))),
+                    right: Box::new(u_squared),
+                };
+                
+                let sqrt_term = Expression::Function {
+                    name: "sqrt".to_string(),
+                    args: vec![one_minus_u_squared],
+                };
+                
+                Ok(Expression::BinaryOp {
+                    op: BinaryOperator::Divide,
+                    left: Box::new(arg_diff),
+                    right: Box::new(sqrt_term),
+                })
+            }
+            
+            "acos" => {
+                // (arccos u)' = -u' / √(1 - u²)
+                let u_squared = Expression::BinaryOp {
+                    op: BinaryOperator::Power,
+                    left: Box::new(arg.clone()),
+                    right: Box::new(Expression::Number(Number::Integer(BigInt::from(2)))),
+                };
+                
+                let one_minus_u_squared = Expression::BinaryOp {
+                    op: BinaryOperator::Subtract,
+                    left: Box::new(Expression::Number(Number::Integer(BigInt::from(1)))),
+                    right: Box::new(u_squared),
+                };
+                
+                let sqrt_term = Expression::Function {
+                    name: "sqrt".to_string(),
+                    args: vec![one_minus_u_squared],
+                };
+                
+                let neg_arg_diff = Expression::UnaryOp {
+                    op: UnaryOperator::Negate,
+                    operand: Box::new(arg_diff),
+                };
+                
+                Ok(Expression::BinaryOp {
+                    op: BinaryOperator::Divide,
+                    left: Box::new(neg_arg_diff),
+                    right: Box::new(sqrt_term),
+                })
+            }
+            
+            "atan" => {
+                // (arctan u)' = u' / (1 + u²)
+                let u_squared = Expression::BinaryOp {
+                    op: BinaryOperator::Power,
+                    left: Box::new(arg.clone()),
+                    right: Box::new(Expression::Number(Number::Integer(BigInt::from(2)))),
+                };
+                
+                let one_plus_u_squared = Expression::BinaryOp {
+                    op: BinaryOperator::Add,
+                    left: Box::new(Expression::Number(Number::Integer(BigInt::from(1)))),
+                    right: Box::new(u_squared),
+                };
+                
+                Ok(Expression::BinaryOp {
+                    op: BinaryOperator::Divide,
+                    left: Box::new(arg_diff),
+                    right: Box::new(one_plus_u_squared),
+                })
+            }
+            
+            // 双曲函数求导
+            "sinh" => {
+                // (sinh u)' = cosh u * u'
+                let cosh_arg = Expression::Function {
+                    name: "cosh".to_string(),
+                    args: vec![arg.clone()],
+                };
+                
+                Ok(Expression::BinaryOp {
+                    op: BinaryOperator::Multiply,
+                    left: Box::new(cosh_arg),
+                    right: Box::new(arg_diff),
+                })
+            }
+            
+            "cosh" => {
+                // (cosh u)' = sinh u * u'
+                let sinh_arg = Expression::Function {
+                    name: "sinh".to_string(),
+                    args: vec![arg.clone()],
+                };
+                
+                Ok(Expression::BinaryOp {
+                    op: BinaryOperator::Multiply,
+                    left: Box::new(sinh_arg),
+                    right: Box::new(arg_diff),
+                })
+            }
+            
+            "tanh" => {
+                // (tanh u)' = sech² u * u' = u' / cosh² u
+                let cosh_arg = Expression::Function {
+                    name: "cosh".to_string(),
+                    args: vec![arg.clone()],
+                };
+                
+                let cosh_squared = Expression::BinaryOp {
+                    op: BinaryOperator::Power,
+                    left: Box::new(cosh_arg),
+                    right: Box::new(Expression::Number(Number::Integer(BigInt::from(2)))),
+                };
+                
+                Ok(Expression::BinaryOp {
+                    op: BinaryOperator::Divide,
+                    left: Box::new(arg_diff),
+                    right: Box::new(cosh_squared),
+                })
+            }
+            
+            // 对数函数求导
+            "ln" | "log" => {
+                // (ln u)' = u' / u
+                Ok(Expression::BinaryOp {
+                    op: BinaryOperator::Divide,
+                    left: Box::new(arg_diff),
+                    right: Box::new(arg.clone()),
+                })
+            }
+            
+            "log10" => {
+                // (log₁₀ u)' = u' / (u * ln(10))
+                let ln_10 = Expression::Function {
+                    name: "ln".to_string(),
+                    args: vec![Expression::Number(Number::Integer(BigInt::from(10)))],
+                };
+                
+                let denominator = Expression::BinaryOp {
+                    op: BinaryOperator::Multiply,
+                    left: Box::new(arg.clone()),
+                    right: Box::new(ln_10),
+                };
+                
+                Ok(Expression::BinaryOp {
+                    op: BinaryOperator::Divide,
+                    left: Box::new(arg_diff),
+                    right: Box::new(denominator),
+                })
+            }
+            
+            "log2" => {
+                // (log₂ u)' = u' / (u * ln(2))
+                let ln_2 = Expression::Function {
+                    name: "ln".to_string(),
+                    args: vec![Expression::Number(Number::Integer(BigInt::from(2)))],
+                };
+                
+                let denominator = Expression::BinaryOp {
+                    op: BinaryOperator::Multiply,
+                    left: Box::new(arg.clone()),
+                    right: Box::new(ln_2),
+                };
+                
+                Ok(Expression::BinaryOp {
+                    op: BinaryOperator::Divide,
+                    left: Box::new(arg_diff),
+                    right: Box::new(denominator),
+                })
+            }
+            
+            // 指数函数求导
+            "exp" => {
+                // (e^u)' = e^u * u'
+                let exp_arg = Expression::Function {
+                    name: "exp".to_string(),
+                    args: vec![arg.clone()],
+                };
+                
+                Ok(Expression::BinaryOp {
+                    op: BinaryOperator::Multiply,
+                    left: Box::new(exp_arg),
+                    right: Box::new(arg_diff),
+                })
+            }
+            
+            // 平方根函数求导
+            "sqrt" => {
+                // (√u)' = u' / (2√u)
+                let sqrt_arg = Expression::Function {
+                    name: "sqrt".to_string(),
+                    args: vec![arg.clone()],
+                };
+                
+                let denominator = Expression::BinaryOp {
+                    op: BinaryOperator::Multiply,
+                    left: Box::new(Expression::Number(Number::Integer(BigInt::from(2)))),
+                    right: Box::new(sqrt_arg),
+                };
+                
+                Ok(Expression::BinaryOp {
+                    op: BinaryOperator::Divide,
+                    left: Box::new(arg_diff),
+                    right: Box::new(denominator),
+                })
+            }
+            
+            // 绝对值函数求导
+            "abs" => {
+                // |u|' = u' * sign(u) (简化处理)
+                let sign_u = Expression::BinaryOp {
+                    op: BinaryOperator::Divide,
+                    left: Box::new(arg.clone()),
+                    right: Box::new(Expression::Function {
+                        name: "abs".to_string(),
+                        args: vec![arg.clone()],
+                    }),
+                };
+                
+                Ok(Expression::BinaryOp {
+                    op: BinaryOperator::Multiply,
+                    left: Box::new(arg_diff),
+                    right: Box::new(sign_u),
+                })
+            }
+            
             _ => Err(ComputeError::UnsupportedOperation { 
                 operation: format!("对函数 {} 求导", name) 
             }),
