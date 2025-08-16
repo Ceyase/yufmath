@@ -10,5 +10,5 @@ pub mod error;
 
 pub use yufmath::Yufmath;
 pub use config::{ComputeConfig, PrecisionConfig};
-pub use progress::{ComputeProgress, PerformanceStats, PerformanceMonitor};
+pub use progress::{ComputeProgress, PerformanceStats, PerformanceMonitor, ProgressCallback};
 pub use error::YufmathError;

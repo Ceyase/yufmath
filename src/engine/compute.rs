@@ -3,6 +3,7 @@
 //! 实现基本的数学计算功能。
 
 use std::collections::HashMap;
+use std::sync::{Arc, Mutex};
 use crate::core::{Expression, Number, MathConstant};
 use super::{ComputeEngine, ComputeError};
 use super::simplify::Simplifier;
@@ -13,7 +14,7 @@ use super::calculus::CalculusEngine;
 /// 基础计算引擎实现
 pub struct BasicComputeEngine {
     /// 表达式简化器
-    simplifier: std::cell::RefCell<Simplifier>,
+    simplifier: Arc<Mutex<Simplifier>>,
     /// 多项式运算引擎
     polynomial_engine: PolynomialEngine,
     /// 数论和组合数学引擎
@@ -26,7 +27,7 @@ impl BasicComputeEngine {
     /// 创建新的计算引擎
     pub fn new() -> Self {
         Self {
-            simplifier: std::cell::RefCell::new(Simplifier::new()),
+            simplifier: Arc::new(Mutex::new(Simplifier::new())),
             polynomial_engine: PolynomialEngine::new(),
             number_theory_engine: NumberTheoryEngine::new(),
             calculus_engine: CalculusEngine::new(),
@@ -36,7 +37,9 @@ impl BasicComputeEngine {
 
 impl ComputeEngine for BasicComputeEngine {
     fn simplify(&self, expr: &Expression) -> Result<Expression, ComputeError> {
-        self.simplifier.borrow_mut().simplify(expr)
+        self.simplifier.lock()
+            .map_err(|_| ComputeError::internal("无法获取简化器锁"))?
+            .simplify(expr)
     }
     
     fn evaluate(&self, _expr: &Expression, _vars: &HashMap<String, Number>) -> Result<Number, ComputeError> {
@@ -131,5 +134,91 @@ impl ComputeEngine for BasicComputeEngine {
     
     fn standard_deviation(&self, values: &[Expression]) -> Result<Expression, ComputeError> {
         self.number_theory_engine.standard_deviation(values)
+    }
+    
+    // 方程求解功能实现（暂时使用占位符）
+    
+    fn solve(&self, _equation: &Expression, _var: &str) -> Result<Vec<Expression>, ComputeError> {
+        // 占位符实现，将在后续任务中完成
+        todo!("方程求解功能将在后续任务中实现")
+    }
+    
+    fn solve_system(&self, _equations: &[Expression], _vars: &[String]) 
+        -> Result<Vec<HashMap<String, Expression>>, ComputeError> {
+        // 占位符实现，将在后续任务中完成
+        todo!("方程组求解功能将在后续任务中实现")
+    }
+    
+    // 矩阵运算功能实现（暂时使用占位符）
+    
+    fn matrix_add(&self, _a: &Expression, _b: &Expression) -> Result<Expression, ComputeError> {
+        // 占位符实现，将在后续任务中完成
+        todo!("矩阵加法功能将在后续任务中实现")
+    }
+    
+    fn matrix_multiply(&self, _a: &Expression, _b: &Expression) -> Result<Expression, ComputeError> {
+        // 占位符实现，将在后续任务中完成
+        todo!("矩阵乘法功能将在后续任务中实现")
+    }
+    
+    fn matrix_determinant(&self, _matrix: &Expression) -> Result<Expression, ComputeError> {
+        // 占位符实现，将在后续任务中完成
+        todo!("矩阵行列式功能将在后续任务中实现")
+    }
+    
+    fn matrix_inverse(&self, _matrix: &Expression) -> Result<Expression, ComputeError> {
+        // 占位符实现，将在后续任务中完成
+        todo!("矩阵逆功能将在后续任务中实现")
+    }
+    
+    // 复数运算功能实现（暂时使用占位符）
+    
+    fn complex_conjugate(&self, _expr: &Expression) -> Result<Expression, ComputeError> {
+        // 占位符实现，将在后续任务中完成
+        todo!("复数共轭功能将在后续任务中实现")
+    }
+    
+    fn complex_modulus(&self, _expr: &Expression) -> Result<Expression, ComputeError> {
+        // 占位符实现，将在后续任务中完成
+        todo!("复数模长功能将在后续任务中实现")
+    }
+    
+    fn complex_argument(&self, _expr: &Expression) -> Result<Expression, ComputeError> {
+        // 占位符实现，将在后续任务中完成
+        todo!("复数幅角功能将在后续任务中实现")
+    }
+    
+    // 向量运算功能实现（暂时使用占位符）
+    
+    fn vector_dot(&self, _a: &Expression, _b: &Expression) -> Result<Expression, ComputeError> {
+        // 占位符实现，将在后续任务中完成
+        todo!("向量点积功能将在后续任务中实现")
+    }
+    
+    fn vector_cross(&self, _a: &Expression, _b: &Expression) -> Result<Expression, ComputeError> {
+        // 占位符实现，将在后续任务中完成
+        todo!("向量叉积功能将在后续任务中实现")
+    }
+    
+    fn vector_norm(&self, _v: &Expression) -> Result<Expression, ComputeError> {
+        // 占位符实现，将在后续任务中完成
+        todo!("向量范数功能将在后续任务中实现")
+    }
+    
+    // 集合运算功能实现（暂时使用占位符）
+    
+    fn set_union(&self, _a: &Expression, _b: &Expression) -> Result<Expression, ComputeError> {
+        // 占位符实现，将在后续任务中完成
+        todo!("集合并集功能将在后续任务中实现")
+    }
+    
+    fn set_intersection(&self, _a: &Expression, _b: &Expression) -> Result<Expression, ComputeError> {
+        // 占位符实现，将在后续任务中完成
+        todo!("集合交集功能将在后续任务中实现")
+    }
+    
+    fn set_difference(&self, _a: &Expression, _b: &Expression) -> Result<Expression, ComputeError> {
+        // 占位符实现，将在后续任务中完成
+        todo!("集合差集功能将在后续任务中实现")
     }
 }

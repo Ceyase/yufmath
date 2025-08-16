@@ -88,6 +88,13 @@ impl ComputeError {
         }
     }
     
+    /// 创建内部错误（用于系统级错误）
+    pub fn internal(message: impl Into<String>) -> Self {
+        ComputeError::UnsupportedOperation {
+            operation: format!("内部错误: {}", message.into()),
+        }
+    }
+    
     /// 获取用户友好的错误消息
     pub fn user_friendly_message(&self) -> String {
         match self {

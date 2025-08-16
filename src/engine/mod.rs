@@ -16,7 +16,7 @@ use crate::core::{Expression, Number, MathConstant};
 pub use error::{ComputeError, ErrorSeverity};
 
 /// 计算引擎 trait
-pub trait ComputeEngine {
+pub trait ComputeEngine: Send + Sync {
     /// 简化表达式
     fn simplify(&self, expr: &Expression) -> Result<Expression, ComputeError>;
     
@@ -94,4 +94,60 @@ pub trait ComputeEngine {
     
     /// 计算标准差
     fn standard_deviation(&self, values: &[Expression]) -> Result<Expression, ComputeError>;
+    
+    // 方程求解功能
+    
+    /// 求解单变量方程
+    fn solve(&self, equation: &Expression, var: &str) -> Result<Vec<Expression>, ComputeError>;
+    
+    /// 求解多变量方程组
+    fn solve_system(&self, equations: &[Expression], vars: &[String]) 
+        -> Result<Vec<HashMap<String, Expression>>, ComputeError>;
+    
+    // 矩阵运算功能
+    
+    /// 矩阵加法
+    fn matrix_add(&self, a: &Expression, b: &Expression) -> Result<Expression, ComputeError>;
+    
+    /// 矩阵乘法
+    fn matrix_multiply(&self, a: &Expression, b: &Expression) -> Result<Expression, ComputeError>;
+    
+    /// 计算矩阵行列式
+    fn matrix_determinant(&self, matrix: &Expression) -> Result<Expression, ComputeError>;
+    
+    /// 计算矩阵逆
+    fn matrix_inverse(&self, matrix: &Expression) -> Result<Expression, ComputeError>;
+    
+    // 复数运算功能
+    
+    /// 复数共轭
+    fn complex_conjugate(&self, expr: &Expression) -> Result<Expression, ComputeError>;
+    
+    /// 复数模长
+    fn complex_modulus(&self, expr: &Expression) -> Result<Expression, ComputeError>;
+    
+    /// 复数幅角
+    fn complex_argument(&self, expr: &Expression) -> Result<Expression, ComputeError>;
+    
+    // 向量运算功能
+    
+    /// 向量点积
+    fn vector_dot(&self, a: &Expression, b: &Expression) -> Result<Expression, ComputeError>;
+    
+    /// 向量叉积
+    fn vector_cross(&self, a: &Expression, b: &Expression) -> Result<Expression, ComputeError>;
+    
+    /// 向量范数
+    fn vector_norm(&self, v: &Expression) -> Result<Expression, ComputeError>;
+    
+    // 集合运算功能
+    
+    /// 集合并集
+    fn set_union(&self, a: &Expression, b: &Expression) -> Result<Expression, ComputeError>;
+    
+    /// 集合交集
+    fn set_intersection(&self, a: &Expression, b: &Expression) -> Result<Expression, ComputeError>;
+    
+    /// 集合差集
+    fn set_difference(&self, a: &Expression, b: &Expression) -> Result<Expression, ComputeError>;
 }

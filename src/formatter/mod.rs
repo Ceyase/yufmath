@@ -47,7 +47,7 @@ impl Default for FormatOptions {
 }
 
 /// 表达式格式化器 trait
-pub trait Formatter {
+pub trait Formatter: Send + Sync {
     /// 将表达式格式化为字符串
     fn format(&self, expr: &Expression) -> String;
     

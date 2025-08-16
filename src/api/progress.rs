@@ -68,7 +68,7 @@ impl ComputeProgress {
 pub type ProgressCallback = Box<dyn Fn(&ComputeProgress) -> bool + Send + Sync>;
 
 /// 性能统计
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub struct PerformanceStats {
     /// 缓存命中率
     pub cache_hit_rate: f64,

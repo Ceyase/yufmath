@@ -42,3 +42,15 @@ harness = false
 [[bin]]
 name = "yufmath"
 path = "src/main.rs"
+
+[[example]]
+name = "api_demo"
+path = "examples/api_demo.rs"
+
+[[example]]
+name = "advanced_api_demo"
+path = "examples/advanced_api_demo.rs"
+
+[[example]]
+name = "performance_demo"
+path = "examples/performance_demo.rs"

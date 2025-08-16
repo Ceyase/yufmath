@@ -17,7 +17,7 @@ use crate::core::Expression;
 pub use error::ParseError;
 
 /// 表达式解析器 trait
-pub trait Parser {
+pub trait Parser: Send + Sync {
     /// 解析字符串为表达式
     fn parse(&self, input: &str) -> Result<Expression, ParseError>;
     
