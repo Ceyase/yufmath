@@ -9,6 +9,8 @@ pub mod constants;
 pub mod operators;
 pub mod types;
 pub mod high_precision;
+pub mod memory;
+pub mod expression_builder;
 
 #[cfg(test)]
 pub mod precision_test;
@@ -19,3 +21,8 @@ pub use number::Number;
 pub use constants::MathConstant;
 pub use operators::{BinaryOperator, UnaryOperator};
 pub use types::{ExprType, NumericType};
+pub use memory::{
+    SharedExpression, CowExpression, MemoryManager, MemoryMonitor,
+    MemoryStats, MemoryConfig, ExpressionComparator
+};
+pub use expression_builder::{ExpressionBuilder, ExpressionFactory};
