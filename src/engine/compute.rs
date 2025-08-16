@@ -33,18 +33,76 @@ impl BasicComputeEngine {
             calculus_engine: CalculusEngine::new(),
         }
     }
+    
+    /// 计算二元运算
+    fn evaluate_binary_op(&self, left: &Number, right: &Number, op: &crate::core::BinaryOperator) -> Result<Number, ComputeError> {
+        use crate::core::BinaryOperator;
+        use num_bigint::BigInt;
+        use num_rational::BigRational;
+        
+        match op {
+            BinaryOperator::Add => left.add(right),
+            BinaryOperator::Subtract => left.subtract(right),
+            BinaryOperator::Multiply => left.multiply(right),
+            BinaryOperator::Divide => left.divide(right),
+            BinaryOperator::Power => left.power(right),
+            _ => Err(ComputeError::unsupported_operation(&format!("不支持的二元运算: {:?}", op)))
+        }
+    }
+    
+    /// 计算一元运算
+    fn evaluate_unary_op(&self, operand: &Number, op: &crate::core::UnaryOperator) -> Result<Number, ComputeError> {
+        use crate::core::UnaryOperator;
+        
+        match op {
+            UnaryOperator::Negate => operand.negate(),
+            UnaryOperator::Plus => Ok(operand.clone()),
+            UnaryOperator::Abs => operand.abs(),
+            _ => Err(ComputeError::unsupported_operation(&format!("不支持的一元运算: {:?}", op)))
+        }
+    }
 }
 
 impl ComputeEngine for BasicComputeEngine {
+    fn as_any(&self) -> &dyn std::any::Any {
+        self
+    }
     fn simplify(&self, expr: &Expression) -> Result<Expression, ComputeError> {
         self.simplifier.lock()
             .map_err(|_| ComputeError::internal("无法获取简化器锁"))?
             .simplify(expr)
     }
     
-    fn evaluate(&self, _expr: &Expression, _vars: &HashMap<String, Number>) -> Result<Number, ComputeError> {
-        // 占位符实现，将在后续任务中完成
-        todo!("求值功能将在后续任务中实现")
+    fn evaluate(&self, expr: &Expression, vars: &HashMap<String, Number>) -> Result<Number, ComputeError> {
+        match expr {
+            Expression::Number(n) => Ok(n.clone()),
+            Expression::Variable(name) => {
+                vars.get(name)
+                    .cloned()
+                    .ok_or_else(|| ComputeError::undefined_variable(name))
+            }
+            Expression::BinaryOp { op, left, right } => {
+                let left_val = self.evaluate(left, vars)?;
+                let right_val = self.evaluate(right, vars)?;
+                self.evaluate_binary_op(&left_val, &right_val, op)
+            }
+            Expression::UnaryOp { op, operand } => {
+                let operand_val = self.evaluate(operand, vars)?;
+                self.evaluate_unary_op(&operand_val, op)
+            }
+            Expression::Constant(c) => {
+                self.constant_to_number(c)
+            }
+            _ => {
+                // 对于其他复杂表达式，先简化再求值
+                let simplified = self.simplify(expr)?;
+                if simplified != *expr {
+                    self.evaluate(&simplified, vars)
+                } else {
+                    Err(ComputeError::unsupported_operation(&format!("无法求值表达式: {:?}", expr)))
+                }
+            }
+        }
     }
     
     fn differentiate(&self, expr: &Expression, var: &str) -> Result<Expression, ComputeError> {
@@ -67,9 +125,20 @@ impl ComputeEngine for BasicComputeEngine {
         self.calculus_engine.numerical_evaluate(expr, vars)
     }
     
-    fn constant_to_number(&self, _constant: &MathConstant) -> Result<Number, ComputeError> {
-        // 占位符实现，将在后续任务中完成
-        todo!("常量转换功能将在后续任务中实现")
+    fn constant_to_number(&self, constant: &MathConstant) -> Result<Number, ComputeError> {
+        use crate::core::MathConstant;
+        
+        match constant {
+            MathConstant::Pi => Ok(Number::Float(std::f64::consts::PI)),
+            MathConstant::E => Ok(Number::Float(std::f64::consts::E)),
+            MathConstant::I => Ok(Number::i()),
+            MathConstant::EulerGamma => Ok(Number::Float(0.5772156649015329)),
+            MathConstant::GoldenRatio => Ok(Number::Float(1.618033988749895)),
+            MathConstant::Catalan => Ok(Number::Float(0.915965594177219)),
+            MathConstant::PositiveInfinity => Ok(Number::Float(f64::INFINITY)),
+            MathConstant::NegativeInfinity => Ok(Number::Float(f64::NEG_INFINITY)),
+            MathConstant::Undefined => Ok(Number::Float(f64::NAN)),
+        }
     }
     
     fn simplify_constants(&self, _expr: &Expression) -> Result<Expression, ComputeError> {

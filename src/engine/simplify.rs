@@ -110,7 +110,7 @@ impl Simplifier {
                 match op {
                     UnaryOperator::Negate => Ok(-operand_val),
                     UnaryOperator::Plus => Ok(operand_val),
-                    UnaryOperator::Abs => Ok(operand_val.abs()),
+                    UnaryOperator::Abs => Ok(operand_val.abs()?),
                     _ => Err(ComputeError::UnsupportedOperation { 
                         operation: format!("常量折叠中的 {:?} 运算", op) 
                     }),
@@ -445,7 +445,7 @@ impl Simplifier {
             
             // 规则：常量折叠
             Expression::Number(n) => {
-                Ok(Expression::Number(n.abs()))
+                Ok(Expression::Number(n.abs()?))
             }
             
             _ => Ok(Expression::abs(operand.clone())),
@@ -800,7 +800,7 @@ impl Simplifier {
     fn evaluate_absolute_value(&self, arg: &Expression) -> Result<Expression, ComputeError> {
         match arg {
             Expression::Number(n) => {
-                Ok(Expression::Number(n.abs()))
+                Ok(Expression::Number(n.abs()?))
             }
             _ => Err(ComputeError::UnsupportedOperation { 
                 operation: "无法计算此绝对值表达式".to_string() 

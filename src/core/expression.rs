@@ -979,7 +979,7 @@ impl Expression {
         match op {
             UnaryOperator::Negate => Ok(-operand.clone()),
             UnaryOperator::Plus => Ok(operand.clone()),
-            UnaryOperator::Abs => Ok(operand.abs()),
+            UnaryOperator::Abs => operand.abs().map_err(|e| format!("{}", e)),
             UnaryOperator::Sqrt => {
                 self.evaluate_sqrt(operand)
             }
@@ -1440,7 +1440,7 @@ impl Expression {
                 if args.len() != 1 {
                     return Err("abs函数需要一个参数".to_string());
                 }
-                Ok(args[0].abs())
+                args[0].abs().map_err(|e| format!("{}", e))
             }
             
             // 对于其他函数，返回符号表示

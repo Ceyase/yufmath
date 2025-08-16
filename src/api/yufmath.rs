@@ -7,7 +7,7 @@ use std::sync::{Arc, Mutex};
 use std::sync::atomic::{AtomicBool, Ordering};
 use crate::core::{Expression, Number};
 use crate::parser::{Parser, ParseError, syntax::ExpressionParser};
-use crate::engine::{ComputeEngine, ComputeError, compute::BasicComputeEngine};
+use crate::engine::{ComputeEngine, ComputeError, CachedComputeEngine, CacheStats, CacheUsageInfo};
 use crate::formatter::{Formatter, FormatOptions, MultiFormatter};
 use super::{YufmathError, ComputeConfig, PerformanceMonitor, ComputeProgress};
 use super::progress::ProgressCallback;
@@ -32,7 +32,7 @@ impl Yufmath {
         
         Self {
             parser: Box::new(ExpressionParser::new()),
-            engine: Box::new(BasicComputeEngine::new()),
+            engine: Box::new(CachedComputeEngine::new(config.cache.clone())),
             formatter: Arc::new(Mutex::new(Box::new(MultiFormatter::new()))),
             monitor: Arc::new(Mutex::new(PerformanceMonitor::new())),
             config,
@@ -47,7 +47,7 @@ impl Yufmath {
         
         Self {
             parser: Box::new(ExpressionParser::new()),
-            engine: Box::new(BasicComputeEngine::new()),
+            engine: Box::new(CachedComputeEngine::new(config.cache.clone())),
             formatter: Arc::new(Mutex::new(Box::new(MultiFormatter::new()))),
             monitor: Arc::new(Mutex::new(PerformanceMonitor::new())),
             config,
@@ -59,10 +59,20 @@ impl Yufmath {
     /// 解析并计算表达式
     pub fn compute(&self, input: &str) -> Result<String, YufmathError> {
         let expr = self.parser.parse(input)?;
-        let simplified = self.engine.simplify(&expr)?;
+        
+        // 尝试求值（对于纯数值表达式）
+        let vars = HashMap::new();
+        let result = match self.engine.evaluate(&expr, &vars) {
+            Ok(number) => Expression::Number(number),
+            Err(_) => {
+                // 如果求值失败，则简化表达式
+                self.engine.simplify(&expr)?
+            }
+        };
+        
         let formatter = self.formatter.lock()
             .map_err(|_| YufmathError::internal("无法获取格式化器锁"))?;
-        Ok(formatter.format(&simplified))
+        Ok(formatter.format(&result))
     }
     
     /// 解析表达式
@@ -426,6 +436,43 @@ impl Yufmath {
     /// 清理已完成的异步任务
     pub fn cleanup_async_tasks(&self) {
         self.async_computer.cleanup_completed();
+    }
+    
+    /// 获取缓存统计信息
+    pub fn get_cache_stats(&self) -> Option<CacheStats> {
+        // 尝试将引擎转换为 CachedComputeEngine
+        if let Some(cached_engine) = self.engine.as_any().downcast_ref::<CachedComputeEngine>() {
+            cached_engine.get_cache_stats().ok()
+        } else {
+            None
+        }
+    }
+    
+    /// 获取缓存使用情况
+    pub fn get_cache_usage(&self) -> Option<CacheUsageInfo> {
+        if let Some(cached_engine) = self.engine.as_any().downcast_ref::<CachedComputeEngine>() {
+            cached_engine.get_cache_usage().ok()
+        } else {
+            None
+        }
+    }
+    
+    /// 清理缓存
+    pub fn cleanup_cache(&self) -> Result<(), YufmathError> {
+        if let Some(cached_engine) = self.engine.as_any().downcast_ref::<CachedComputeEngine>() {
+            cached_engine.cleanup_cache().map_err(YufmathError::from)
+        } else {
+            Ok(()) // 如果不是缓存引擎，直接返回成功
+        }
+    }
+    
+    /// 清空所有缓存
+    pub fn clear_cache(&self) -> Result<(), YufmathError> {
+        if let Some(cached_engine) = self.engine.as_any().downcast_ref::<CachedComputeEngine>() {
+            cached_engine.clear_cache().map_err(YufmathError::from)
+        } else {
+            Ok(()) // 如果不是缓存引擎，直接返回成功
+        }
     }
     
     /// 内部方法：更新进度

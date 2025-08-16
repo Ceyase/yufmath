@@ -346,8 +346,8 @@ impl Number {
     }
     
     /// 获取绝对值
-    pub fn abs(&self) -> Self {
-        match self {
+    pub fn abs(&self) -> Result<Self, crate::engine::ComputeError> {
+        Ok(match self {
             Number::Integer(i) => Number::Integer(i.abs()),
             Number::Rational(r) => Number::Rational(r.abs()),
             Number::Real(r) => Number::Real(r.abs()),
@@ -359,10 +359,10 @@ impl Number {
                     Number::Rational(r) => Number::Rational(r * r),
                     Number::Real(r) => Number::Real(r * r),
                     Number::Float(r) => Number::Float(r * r),
-                    _ => return Number::Symbolic(Box::new(crate::core::Expression::UnaryOp {
+                    _ => return Ok(Number::Symbolic(Box::new(crate::core::Expression::UnaryOp {
                         op: crate::core::UnaryOperator::Abs,
                         operand: Box::new(crate::core::Expression::Number(self.clone())),
-                    })),
+                    }))),
                 };
                 
                 let imag_sq = match imaginary.as_ref() {
@@ -370,10 +370,10 @@ impl Number {
                     Number::Rational(i) => Number::Rational(i * i),
                     Number::Real(i) => Number::Real(i * i),
                     Number::Float(i) => Number::Float(i * i),
-                    _ => return Number::Symbolic(Box::new(crate::core::Expression::UnaryOp {
+                    _ => return Ok(Number::Symbolic(Box::new(crate::core::Expression::UnaryOp {
                         op: crate::core::UnaryOperator::Abs,
                         operand: Box::new(crate::core::Expression::Number(self.clone())),
-                    })),
+                    }))),
                 };
                 
                 // 返回符号表示，因为需要开方运算
@@ -394,7 +394,7 @@ impl Number {
                 op: crate::core::UnaryOperator::Abs,
                 operand: Box::new(crate::core::Expression::Number(self.clone())),
             })),
-        }
+        })
     }
     
     /// 取负值
@@ -416,6 +416,92 @@ impl Number {
                 op: crate::core::UnaryOperator::Negate,
                 operand: expr.clone(),
             })),
+        }
+    }
+    
+    /// 取负值（别名）
+    pub fn negate(&self) -> Result<Number, crate::engine::ComputeError> {
+        Ok(self.neg())
+    }
+    
+    /// 加法运算
+    pub fn add(&self, other: &Number) -> Result<Number, crate::engine::ComputeError> {
+        Ok(self.clone() + other.clone())
+    }
+    
+    /// 减法运算
+    pub fn subtract(&self, other: &Number) -> Result<Number, crate::engine::ComputeError> {
+        Ok(self.clone() - other.clone())
+    }
+    
+    /// 乘法运算
+    pub fn multiply(&self, other: &Number) -> Result<Number, crate::engine::ComputeError> {
+        Ok(self.clone() * other.clone())
+    }
+    
+    /// 除法运算
+    pub fn divide(&self, other: &Number) -> Result<Number, crate::engine::ComputeError> {
+        if other.is_zero() {
+            return Err(crate::engine::ComputeError::DivisionByZero);
+        }
+        Ok(self.clone() / other.clone())
+    }
+    
+    /// 幂运算
+    pub fn power(&self, other: &Number) -> Result<Number, crate::engine::ComputeError> {
+        use num_traits::Pow;
+        
+        match (self, other) {
+            (Number::Integer(base), Number::Integer(exp)) => {
+                if exp >= &BigInt::from(0) {
+                    if let Some(exp_u32) = exp.to_u32() {
+                        Ok(Number::Integer(base.pow(exp_u32)))
+                    } else {
+                        // 指数太大，返回符号表示
+                        Ok(Number::Symbolic(Box::new(crate::core::Expression::BinaryOp {
+                            op: crate::core::BinaryOperator::Power,
+                            left: Box::new(crate::core::Expression::Number(self.clone())),
+                            right: Box::new(crate::core::Expression::Number(other.clone())),
+                        })))
+                    }
+                } else {
+                    // 负指数，转换为有理数
+                    let base_rational = BigRational::from(base.clone());
+                    let exp_abs = exp.abs();
+                    if let Some(exp_u32) = exp_abs.to_u32() {
+                        let result = base_rational.pow(exp_u32);
+                        Ok(Number::Rational(BigRational::from(BigInt::from(1)) / result))
+                    } else {
+                        Ok(Number::Symbolic(Box::new(crate::core::Expression::BinaryOp {
+                            op: crate::core::BinaryOperator::Power,
+                            left: Box::new(crate::core::Expression::Number(self.clone())),
+                            right: Box::new(crate::core::Expression::Number(other.clone())),
+                        })))
+                    }
+                }
+            }
+            (Number::Rational(base), Number::Integer(exp)) => {
+                if let Some(exp_i32) = exp.to_i32() {
+                    Ok(Number::Rational(base.pow(exp_i32)))
+                } else {
+                    Ok(Number::Symbolic(Box::new(crate::core::Expression::BinaryOp {
+                        op: crate::core::BinaryOperator::Power,
+                        left: Box::new(crate::core::Expression::Number(self.clone())),
+                        right: Box::new(crate::core::Expression::Number(other.clone())),
+                    })))
+                }
+            }
+            (Number::Float(base), Number::Float(exp)) => {
+                Ok(Number::Float(base.powf(*exp)))
+            }
+            _ => {
+                // 对于其他情况，返回符号表示
+                Ok(Number::Symbolic(Box::new(crate::core::Expression::BinaryOp {
+                    op: crate::core::BinaryOperator::Power,
+                    left: Box::new(crate::core::Expression::Number(self.clone())),
+                    right: Box::new(crate::core::Expression::Number(other.clone())),
+                })))
+            }
         }
     }
     

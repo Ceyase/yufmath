@@ -4,19 +4,25 @@
 //! 包含代数运算、微积分、多项式运算等各种数学操作。
 
 pub mod compute;
+pub mod cached_compute;
 pub mod simplify;
 pub mod calculus;
 pub mod algebra;
 pub mod polynomial;
 pub mod number_theory;
+pub mod cache;
 pub mod error;
 
 use std::collections::HashMap;
 use crate::core::{Expression, Number, MathConstant};
 pub use error::{ComputeError, ErrorSeverity};
+pub use cache::{ComputeCache, CacheManager, CacheStats, CacheUsageInfo};
+pub use cached_compute::CachedComputeEngine;
 
 /// 计算引擎 trait
 pub trait ComputeEngine: Send + Sync {
+    /// 获取 Any trait 引用，用于动态类型转换
+    fn as_any(&self) -> &dyn std::any::Any;
     /// 简化表达式
     fn simplify(&self, expr: &Expression) -> Result<Expression, ComputeError>;
     
