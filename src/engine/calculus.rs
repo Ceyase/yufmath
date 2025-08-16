@@ -862,17 +862,23 @@ impl CalculusEngine {
                 // ∫x^n dx = x^(n+1)/(n+1) (n ≠ -1)
                 
                 // 检查是否为 x^(-1) = 1/x 的情况
-                if let Expression::Number(Number::Integer(n)) = exponent {
-                    if n == &BigInt::from(-1) {
-                        // ∫x^(-1) dx = ∫(1/x) dx = ln|x|
-                        return Ok(Expression::UnaryOp {
-                            op: UnaryOperator::Ln,
-                            operand: Box::new(Expression::UnaryOp {
-                                op: UnaryOperator::Abs,
-                                operand: Box::new(Expression::Variable(var.to_string())),
-                            }),
-                        });
+                let is_negative_one = match exponent {
+                    Expression::Number(Number::Integer(n)) => n == &BigInt::from(-1),
+                    Expression::UnaryOp { op: UnaryOperator::Negate, operand } => {
+                        matches!(operand.as_ref(), Expression::Number(Number::Integer(n)) if n == &BigInt::from(1))
                     }
+                    _ => false,
+                };
+                
+                if is_negative_one {
+                    // ∫x^(-1) dx = ∫(1/x) dx = ln|x|
+                    return Ok(Expression::Function {
+                        name: "ln".to_string(),
+                        args: vec![Expression::Function {
+                            name: "abs".to_string(),
+                            args: vec![Expression::Variable(var.to_string())],
+                        }],
+                    });
                 }
                 
                 // n + 1
@@ -977,10 +983,201 @@ impl CalculusEngine {
                 })
             }
             
-            // 1/x 的积分
-            UnaryOperator::Ln => {
+            // 平方根积分
+            UnaryOperator::Sqrt => {
+                // ∫√x dx = (2/3)x^(3/2)
+                if let Expression::Variable(operand_var) = operand {
+                    if operand_var == var {
+                        let three_halves = Expression::BinaryOp {
+                            op: BinaryOperator::Divide,
+                            left: Box::new(Expression::Number(Number::Integer(BigInt::from(3)))),
+                            right: Box::new(Expression::Number(Number::Integer(BigInt::from(2)))),
+                        };
+                        
+                        let x_power_three_halves = Expression::BinaryOp {
+                            op: BinaryOperator::Power,
+                            left: Box::new(Expression::Variable(var.to_string())),
+                            right: Box::new(three_halves),
+                        };
+                        
+                        let two_thirds = Expression::BinaryOp {
+                            op: BinaryOperator::Divide,
+                            left: Box::new(Expression::Number(Number::Integer(BigInt::from(2)))),
+                            right: Box::new(Expression::Number(Number::Integer(BigInt::from(3)))),
+                        };
+                        
+                        return Ok(Expression::BinaryOp {
+                            op: BinaryOperator::Multiply,
+                            left: Box::new(two_thirds),
+                            right: Box::new(x_power_three_halves),
+                        });
+                    }
+                }
                 Err(ComputeError::UnsupportedOperation { 
-                    operation: "ln 函数的积分需要分部积分".to_string() 
+                    operation: "复合平方根函数积分暂不支持".to_string() 
+                })
+            }
+            
+            // 对数函数积分（分部积分）
+            UnaryOperator::Ln => {
+                // ∫ln(x) dx = x*ln(x) - x
+                if let Expression::Variable(operand_var) = operand {
+                    if operand_var == var {
+                        let x_ln_x = Expression::BinaryOp {
+                            op: BinaryOperator::Multiply,
+                            left: Box::new(Expression::Variable(var.to_string())),
+                            right: Box::new(Expression::UnaryOp {
+                                op: UnaryOperator::Ln,
+                                operand: Box::new(Expression::Variable(var.to_string())),
+                            }),
+                        };
+                        
+                        return Ok(Expression::BinaryOp {
+                            op: BinaryOperator::Subtract,
+                            left: Box::new(x_ln_x),
+                            right: Box::new(Expression::Variable(var.to_string())),
+                        });
+                    }
+                }
+                Err(ComputeError::UnsupportedOperation { 
+                    operation: "复合对数函数积分暂不支持".to_string() 
+                })
+            }
+            
+            // 反三角函数积分
+            UnaryOperator::Asin => {
+                // ∫arcsin(x) dx = x*arcsin(x) + √(1-x²)
+                if let Expression::Variable(operand_var) = operand {
+                    if operand_var == var {
+                        let x_asin_x = Expression::BinaryOp {
+                            op: BinaryOperator::Multiply,
+                            left: Box::new(Expression::Variable(var.to_string())),
+                            right: Box::new(Expression::UnaryOp {
+                                op: UnaryOperator::Asin,
+                                operand: Box::new(Expression::Variable(var.to_string())),
+                            }),
+                        };
+                        
+                        let x_squared = Expression::BinaryOp {
+                            op: BinaryOperator::Power,
+                            left: Box::new(Expression::Variable(var.to_string())),
+                            right: Box::new(Expression::Number(Number::Integer(BigInt::from(2)))),
+                        };
+                        
+                        let one_minus_x_squared = Expression::BinaryOp {
+                            op: BinaryOperator::Subtract,
+                            left: Box::new(Expression::Number(Number::Integer(BigInt::from(1)))),
+                            right: Box::new(x_squared),
+                        };
+                        
+                        let sqrt_term = Expression::UnaryOp {
+                            op: UnaryOperator::Sqrt,
+                            operand: Box::new(one_minus_x_squared),
+                        };
+                        
+                        return Ok(Expression::BinaryOp {
+                            op: BinaryOperator::Add,
+                            left: Box::new(x_asin_x),
+                            right: Box::new(sqrt_term),
+                        });
+                    }
+                }
+                Err(ComputeError::UnsupportedOperation { 
+                    operation: "复合反正弦函数积分暂不支持".to_string() 
+                })
+            }
+            
+            UnaryOperator::Acos => {
+                // ∫arccos(x) dx = x*arccos(x) - √(1-x²)
+                if let Expression::Variable(operand_var) = operand {
+                    if operand_var == var {
+                        let x_acos_x = Expression::BinaryOp {
+                            op: BinaryOperator::Multiply,
+                            left: Box::new(Expression::Variable(var.to_string())),
+                            right: Box::new(Expression::UnaryOp {
+                                op: UnaryOperator::Acos,
+                                operand: Box::new(Expression::Variable(var.to_string())),
+                            }),
+                        };
+                        
+                        let x_squared = Expression::BinaryOp {
+                            op: BinaryOperator::Power,
+                            left: Box::new(Expression::Variable(var.to_string())),
+                            right: Box::new(Expression::Number(Number::Integer(BigInt::from(2)))),
+                        };
+                        
+                        let one_minus_x_squared = Expression::BinaryOp {
+                            op: BinaryOperator::Subtract,
+                            left: Box::new(Expression::Number(Number::Integer(BigInt::from(1)))),
+                            right: Box::new(x_squared),
+                        };
+                        
+                        let sqrt_term = Expression::UnaryOp {
+                            op: UnaryOperator::Sqrt,
+                            operand: Box::new(one_minus_x_squared),
+                        };
+                        
+                        return Ok(Expression::BinaryOp {
+                            op: BinaryOperator::Subtract,
+                            left: Box::new(x_acos_x),
+                            right: Box::new(sqrt_term),
+                        });
+                    }
+                }
+                Err(ComputeError::UnsupportedOperation { 
+                    operation: "复合反余弦函数积分暂不支持".to_string() 
+                })
+            }
+            
+            UnaryOperator::Atan => {
+                // ∫arctan(x) dx = x*arctan(x) - (1/2)*ln(1+x²)
+                if let Expression::Variable(operand_var) = operand {
+                    if operand_var == var {
+                        let x_atan_x = Expression::BinaryOp {
+                            op: BinaryOperator::Multiply,
+                            left: Box::new(Expression::Variable(var.to_string())),
+                            right: Box::new(Expression::UnaryOp {
+                                op: UnaryOperator::Atan,
+                                operand: Box::new(Expression::Variable(var.to_string())),
+                            }),
+                        };
+                        
+                        let x_squared = Expression::BinaryOp {
+                            op: BinaryOperator::Power,
+                            left: Box::new(Expression::Variable(var.to_string())),
+                            right: Box::new(Expression::Number(Number::Integer(BigInt::from(2)))),
+                        };
+                        
+                        let one_plus_x_squared = Expression::BinaryOp {
+                            op: BinaryOperator::Add,
+                            left: Box::new(Expression::Number(Number::Integer(BigInt::from(1)))),
+                            right: Box::new(x_squared),
+                        };
+                        
+                        let ln_term = Expression::UnaryOp {
+                            op: UnaryOperator::Ln,
+                            operand: Box::new(one_plus_x_squared),
+                        };
+                        
+                        let half_ln = Expression::BinaryOp {
+                            op: BinaryOperator::Multiply,
+                            left: Box::new(Expression::BinaryOp {
+                                op: BinaryOperator::Divide,
+                                left: Box::new(Expression::Number(Number::Integer(BigInt::from(1)))),
+                                right: Box::new(Expression::Number(Number::Integer(BigInt::from(2)))),
+                            }),
+                            right: Box::new(ln_term),
+                        };
+                        
+                        return Ok(Expression::BinaryOp {
+                            op: BinaryOperator::Subtract,
+                            left: Box::new(x_atan_x),
+                            right: Box::new(half_ln),
+                        });
+                    }
+                }
+                Err(ComputeError::UnsupportedOperation { 
+                    operation: "复合反正切函数积分暂不支持".to_string() 
                 })
             }
             
@@ -1123,6 +1320,122 @@ impl CalculusEngine {
                             op: BinaryOperator::Multiply,
                             left: Box::new(two_thirds),
                             right: Box::new(x_power_three_halves),
+                        })
+                    }
+                    
+                    // 反三角函数积分
+                    "asin" => {
+                        // ∫arcsin(x) dx = x*arcsin(x) + √(1-x²)
+                        let x_asin_x = Expression::BinaryOp {
+                            op: BinaryOperator::Multiply,
+                            left: Box::new(arg.clone()),
+                            right: Box::new(Expression::Function {
+                                name: "asin".to_string(),
+                                args: vec![arg.clone()],
+                            }),
+                        };
+                        
+                        let x_squared = Expression::BinaryOp {
+                            op: BinaryOperator::Power,
+                            left: Box::new(arg.clone()),
+                            right: Box::new(Expression::Number(Number::Integer(BigInt::from(2)))),
+                        };
+                        
+                        let one_minus_x_squared = Expression::BinaryOp {
+                            op: BinaryOperator::Subtract,
+                            left: Box::new(Expression::Number(Number::Integer(BigInt::from(1)))),
+                            right: Box::new(x_squared),
+                        };
+                        
+                        let sqrt_term = Expression::Function {
+                            name: "sqrt".to_string(),
+                            args: vec![one_minus_x_squared],
+                        };
+                        
+                        Ok(Expression::BinaryOp {
+                            op: BinaryOperator::Add,
+                            left: Box::new(x_asin_x),
+                            right: Box::new(sqrt_term),
+                        })
+                    }
+                    
+                    "acos" => {
+                        // ∫arccos(x) dx = x*arccos(x) - √(1-x²)
+                        let x_acos_x = Expression::BinaryOp {
+                            op: BinaryOperator::Multiply,
+                            left: Box::new(arg.clone()),
+                            right: Box::new(Expression::Function {
+                                name: "acos".to_string(),
+                                args: vec![arg.clone()],
+                            }),
+                        };
+                        
+                        let x_squared = Expression::BinaryOp {
+                            op: BinaryOperator::Power,
+                            left: Box::new(arg.clone()),
+                            right: Box::new(Expression::Number(Number::Integer(BigInt::from(2)))),
+                        };
+                        
+                        let one_minus_x_squared = Expression::BinaryOp {
+                            op: BinaryOperator::Subtract,
+                            left: Box::new(Expression::Number(Number::Integer(BigInt::from(1)))),
+                            right: Box::new(x_squared),
+                        };
+                        
+                        let sqrt_term = Expression::Function {
+                            name: "sqrt".to_string(),
+                            args: vec![one_minus_x_squared],
+                        };
+                        
+                        Ok(Expression::BinaryOp {
+                            op: BinaryOperator::Subtract,
+                            left: Box::new(x_acos_x),
+                            right: Box::new(sqrt_term),
+                        })
+                    }
+                    
+                    "atan" => {
+                        // ∫arctan(x) dx = x*arctan(x) - (1/2)*ln(1+x²)
+                        let x_atan_x = Expression::BinaryOp {
+                            op: BinaryOperator::Multiply,
+                            left: Box::new(arg.clone()),
+                            right: Box::new(Expression::Function {
+                                name: "atan".to_string(),
+                                args: vec![arg.clone()],
+                            }),
+                        };
+                        
+                        let x_squared = Expression::BinaryOp {
+                            op: BinaryOperator::Power,
+                            left: Box::new(arg.clone()),
+                            right: Box::new(Expression::Number(Number::Integer(BigInt::from(2)))),
+                        };
+                        
+                        let one_plus_x_squared = Expression::BinaryOp {
+                            op: BinaryOperator::Add,
+                            left: Box::new(Expression::Number(Number::Integer(BigInt::from(1)))),
+                            right: Box::new(x_squared),
+                        };
+                        
+                        let ln_term = Expression::Function {
+                            name: "ln".to_string(),
+                            args: vec![one_plus_x_squared],
+                        };
+                        
+                        let half_ln = Expression::BinaryOp {
+                            op: BinaryOperator::Multiply,
+                            left: Box::new(Expression::BinaryOp {
+                                op: BinaryOperator::Divide,
+                                left: Box::new(Expression::Number(Number::Integer(BigInt::from(1)))),
+                                right: Box::new(Expression::Number(Number::Integer(BigInt::from(2)))),
+                            }),
+                            right: Box::new(ln_term),
+                        };
+                        
+                        Ok(Expression::BinaryOp {
+                            op: BinaryOperator::Subtract,
+                            left: Box::new(x_atan_x),
+                            right: Box::new(half_ln),
                         })
                     }
                     
