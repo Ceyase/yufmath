@@ -776,29 +776,50 @@ impl Simplifier {
             Expression::Number(n) if n.is_one() => {
                 Ok(Expression::Number(Number::integer(1)))
             }
-            // sqrt(4) = 2, sqrt(9) = 3, etc.
-            Expression::Number(n) => {
-                if let Some(f) = n.to_f64() {
-                    if f >= 0.0 {
-                        let sqrt_val = f.sqrt();
-                        // 检查是否是完全平方数
-                        if sqrt_val.fract() == 0.0 {
-                            Ok(Expression::Number(Number::integer(sqrt_val as i64)))
-                        } else {
-                            Ok(Expression::Number(Number::Float(sqrt_val)))
-                        }
-                    } else {
-                        Err(ComputeError::domain_error("平方根的参数不能为负数"))
-                    }
+            // 对于整数，检查是否是完全平方数
+            Expression::Number(Number::Integer(i)) => {
+                if i < &BigInt::from(0) {
+                    return Err(ComputeError::domain_error("平方根的参数不能为负数"));
+                }
+                
+                // 检查是否是完全平方数
+                if let Some(sqrt_int) = self.integer_sqrt(i) {
+                    Ok(Expression::Number(Number::Integer(sqrt_int)))
                 } else {
-                    Err(ComputeError::UnsupportedOperation { 
-                        operation: "复数平方根计算".to_string() 
-                    })
+                    // 不是完全平方数，保持符号形式
+                    Ok(Expression::function("sqrt", vec![arg.clone()]))
                 }
             }
-            _ => Err(ComputeError::UnsupportedOperation { 
-                operation: "无法计算此平方根表达式".to_string() 
-            }),
+            // 对于有理数，尝试简化
+            Expression::Number(Number::Rational(r)) => {
+                if r < &BigRational::from(BigInt::from(0)) {
+                    return Err(ComputeError::domain_error("平方根的参数不能为负数"));
+                }
+                
+                // 分别计算分子和分母的平方根
+                let numer_sqrt = self.integer_sqrt(r.numer());
+                let denom_sqrt = self.integer_sqrt(r.denom());
+                
+                match (numer_sqrt, denom_sqrt) {
+                    (Some(n), Some(d)) => {
+                        // 分子和分母都是完全平方数
+                        Ok(Expression::Number(Number::Rational(BigRational::new(n, d))))
+                    }
+                    _ => {
+                        // 不是完全平方数，保持符号形式
+                        Ok(Expression::function("sqrt", vec![arg.clone()]))
+                    }
+                }
+            }
+            // 对于其他数值类型，只有在明确要求数值近似时才转换为浮点数
+            Expression::Number(n) => {
+                // 保持符号形式，避免精度损失
+                Ok(Expression::function("sqrt", vec![arg.clone()]))
+            }
+            // 对于非数值表达式，保持符号形式
+            _ => {
+                Ok(Expression::function("sqrt", vec![arg.clone()]))
+            }
         }
     }
     
@@ -1335,6 +1356,52 @@ impl Simplifier {
         }
         
         result
+    }
+    
+    /// 计算整数的平方根（如果是完全平方数）
+    fn integer_sqrt(&self, n: &BigInt) -> Option<BigInt> {
+        use num_bigint::ToBigInt;
+        use num_traits::ToPrimitive;
+        
+        if n < &BigInt::from(0) {
+            return None;
+        }
+        
+        if n == &BigInt::from(0) || n == &BigInt::from(1) {
+            return Some(n.clone());
+        }
+        
+        // 对于小数值，使用浮点数快速检查
+        if let Some(n_f64) = n.to_f64() {
+            if n_f64 <= (u64::MAX as f64) {
+                let sqrt_f64 = n_f64.sqrt();
+                if sqrt_f64.fract() == 0.0 {
+                    let sqrt_int = sqrt_f64 as u64;
+                    let sqrt_bigint = BigInt::from(sqrt_int);
+                    if &(&sqrt_bigint * &sqrt_bigint) == n {
+                        return Some(sqrt_bigint);
+                    }
+                }
+                return None;
+            }
+        }
+        
+        // 对于大数值，使用牛顿法
+        let mut x = n.clone();
+        let mut prev_x = BigInt::from(0);
+        
+        // 牛顿法迭代：x_{n+1} = (x_n + n/x_n) / 2
+        while &x != &prev_x {
+            prev_x = x.clone();
+            x = (&x + n / &x) / BigInt::from(2);
+        }
+        
+        // 检查结果是否精确
+        if &(&x * &x) == n {
+            Some(x)
+        } else {
+            None
+        }
     }
 }
 
