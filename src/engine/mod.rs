@@ -11,6 +11,8 @@ pub mod algebra;
 pub mod polynomial;
 pub mod number_theory;
 pub mod cache;
+pub mod lazy;
+pub mod parallel;
 pub mod error;
 
 use std::collections::HashMap;
@@ -18,6 +20,8 @@ use crate::core::{Expression, Number, MathConstant};
 pub use error::{ComputeError, ErrorSeverity};
 pub use cache::{ComputeCache, CacheManager, CacheStats, CacheUsageInfo};
 pub use cached_compute::CachedComputeEngine;
+pub use lazy::{LazyExpression, DependencyGraph, LazyState, DependencyGraphStats};
+pub use parallel::{ParallelComputeEngine, TaskScheduler, ComputeTask, SchedulerStats, ExpressionPreprocessor, ParallelizationAnalysis};
 
 /// 计算引擎 trait
 pub trait ComputeEngine: Send + Sync {

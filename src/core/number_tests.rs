@@ -136,8 +136,8 @@ mod tests {
         let num2 = Number::integer(-3);
 
         // 测试绝对值
-        assert_eq!(num1.abs().to_string(), "5");
-        assert_eq!(num2.abs().to_string(), "3");
+        assert_eq!(num1.abs().unwrap().to_string(), "5");
+        assert_eq!(num2.abs().unwrap().to_string(), "3");
 
         // 测试取负
         assert_eq!(num1.neg().to_string(), "-5");

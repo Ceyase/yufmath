@@ -196,7 +196,12 @@ pub use api::{
     TaskStatus,
 };
 pub use core::{Expression, Number, MathConstant, BinaryOperator, UnaryOperator};
-pub use engine::{ComputeEngine, ComputeError};
+pub use engine::{
+    ComputeEngine, ComputeError,
+    LazyExpression, DependencyGraph, LazyState, DependencyGraphStats,
+    ParallelComputeEngine, TaskScheduler, ComputeTask, SchedulerStats, 
+    ExpressionPreprocessor, ParallelizationAnalysis
+};
 pub use parser::{Parser, ParseError};
 pub use formatter::{Formatter, FormatOptions, FormatType};
 

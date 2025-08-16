@@ -29,6 +29,9 @@ rustyline = "13.0"
 # 进度条支持
 indicatif = "0.17"
 
+# 并行计算支持
+rayon = "1.8"
+
 [dev-dependencies]
 # 性能基准测试
 criterion = { version = "0.5", features = ["html_reports"] }

@@ -16,3 +16,23 @@ x = 1
 x
 x+1
 exit
+1+1
+sin(pi/2)
+pi
+pi+pi
+pi*100000000000000000000
+sin(6.283185307179586)
+sin(1)
+sin(1.2)
+sin(1.23)
+sin(1.23444)
+sin()
+sin(1)
+sin(1)+cos(1)
+clear
+x = 1000;
+x = 1000
+x
+x+1
+clear
+exit
