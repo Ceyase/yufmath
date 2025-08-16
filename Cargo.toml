@@ -54,3 +54,7 @@ path = "examples/advanced_api_demo.rs"
 [[example]]
 name = "performance_demo"
 path = "examples/performance_demo.rs"
+
+[[example]]
+name = "advanced_features_demo"
+path = "examples/advanced_features_demo.rs"

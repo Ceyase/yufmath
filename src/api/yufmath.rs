@@ -11,6 +11,7 @@ use crate::engine::{ComputeEngine, ComputeError, compute::BasicComputeEngine};
 use crate::formatter::{Formatter, FormatOptions, MultiFormatter};
 use super::{YufmathError, ComputeConfig, PerformanceMonitor, ComputeProgress};
 use super::progress::ProgressCallback;
+use super::async_compute::{AsyncComputation, BatchAsyncComputer, AsyncConfig};
 
 /// Yufmath 库的主要入口点
 pub struct Yufmath {
@@ -20,23 +21,15 @@ pub struct Yufmath {
     monitor: Arc<Mutex<PerformanceMonitor>>,
     config: ComputeConfig,
     cancelled: Arc<AtomicBool>,
+    async_computer: Arc<BatchAsyncComputer>,
 }
 
 impl Yufmath {
     /// 创建新的 Yufmath 实例
     pub fn new() -> Self {
-        Self {
-            parser: Box::new(ExpressionParser::new()),
-            engine: Box::new(BasicComputeEngine::new()),
-            formatter: Arc::new(Mutex::new(Box::new(MultiFormatter::new()))),
-            monitor: Arc::new(Mutex::new(PerformanceMonitor::new())),
-            config: ComputeConfig::default(),
-            cancelled: Arc::new(AtomicBool::new(false)),
-        }
-    }
-    
-    /// 创建带配置的 Yufmath 实例
-    pub fn with_config(config: ComputeConfig) -> Self {
+        let config = ComputeConfig::default();
+        let async_computer = Arc::new(BatchAsyncComputer::new(config.parallel.max_parallel_tasks));
+        
         Self {
             parser: Box::new(ExpressionParser::new()),
             engine: Box::new(BasicComputeEngine::new()),
@@ -44,6 +37,22 @@ impl Yufmath {
             monitor: Arc::new(Mutex::new(PerformanceMonitor::new())),
             config,
             cancelled: Arc::new(AtomicBool::new(false)),
+            async_computer,
+        }
+    }
+    
+    /// 创建带配置的 Yufmath 实例
+    pub fn with_config(config: ComputeConfig) -> Self {
+        let async_computer = Arc::new(BatchAsyncComputer::new(config.parallel.max_parallel_tasks));
+        
+        Self {
+            parser: Box::new(ExpressionParser::new()),
+            engine: Box::new(BasicComputeEngine::new()),
+            formatter: Arc::new(Mutex::new(Box::new(MultiFormatter::new()))),
+            monitor: Arc::new(Mutex::new(PerformanceMonitor::new())),
+            config,
+            cancelled: Arc::new(AtomicBool::new(false)),
+            async_computer,
         }
     }
     
@@ -389,6 +398,34 @@ impl Yufmath {
     /// 统计函数：标准差
     pub fn standard_deviation(&self, values: &[Expression]) -> Result<Expression, YufmathError> {
         Ok(self.engine.standard_deviation(values)?)
+    }
+    
+    /// 异步计算表达式
+    pub fn compute_async(&self, input: &str) -> AsyncComputation<String> {
+        let expressions = vec![input.to_string()];
+        let mut computations = self.async_computer.submit_batch(expressions);
+        computations.pop().unwrap()
+    }
+    
+    /// 异步批量计算
+    pub fn batch_compute_async(&self, inputs: &[&str]) -> Vec<AsyncComputation<String>> {
+        let expressions: Vec<String> = inputs.iter().map(|s| s.to_string()).collect();
+        self.async_computer.submit_batch(expressions)
+    }
+    
+    /// 获取活跃的异步任务数量
+    pub fn active_async_tasks(&self) -> usize {
+        self.async_computer.active_task_count()
+    }
+    
+    /// 取消所有异步任务
+    pub fn cancel_all_async_tasks(&self) {
+        self.async_computer.cancel_all();
+    }
+    
+    /// 清理已完成的异步任务
+    pub fn cleanup_async_tasks(&self) {
+        self.async_computer.cleanup_completed();
     }
     
     /// 内部方法：更新进度

@@ -7,8 +7,10 @@ pub mod yufmath;
 pub mod config;
 pub mod progress;
 pub mod error;
+pub mod async_compute;
 
 pub use yufmath::Yufmath;
-pub use config::{ComputeConfig, PrecisionConfig};
-pub use progress::{ComputeProgress, PerformanceStats, PerformanceMonitor, ProgressCallback};
+pub use config::{ComputeConfig, PrecisionConfig, ParallelConfig, CacheConfig, MemoryConfig};
+pub use progress::{ComputeProgress, PerformanceStats, PerformanceMonitor, ProgressCallback, ComputePhase};
 pub use error::YufmathError;
+pub use async_compute::{AsyncComputation, BatchAsyncComputer, AsyncConfig, TaskStatus};

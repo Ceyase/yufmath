@@ -181,11 +181,19 @@ pub use api::{
     Yufmath, 
     YufmathError, 
     ComputeConfig, 
-    PrecisionConfig, 
-    ComputeProgress, 
+    PrecisionConfig,
+    ParallelConfig,
+    CacheConfig,
+    MemoryConfig,
+    ComputeProgress,
+    ComputePhase,
     PerformanceStats, 
     PerformanceMonitor,
-    ProgressCallback
+    ProgressCallback,
+    AsyncComputation,
+    BatchAsyncComputer,
+    AsyncConfig,
+    TaskStatus,
 };
 pub use core::{Expression, Number, MathConstant, BinaryOperator, UnaryOperator};
 pub use engine::{ComputeEngine, ComputeError};
