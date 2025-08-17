@@ -42,3 +42,14 @@ sqrt(4)
 sqrt(3)
 clear
 exit
+1
+x
+x+1
+sqrt(1)
+sqrt(3)
+exit
+quit
+3+3
+sqrt(9)
+sin(pi/2)
+quit

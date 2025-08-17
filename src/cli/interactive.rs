@@ -340,8 +340,9 @@ pub fn run_interactive() -> Result<(), Box<dyn std::error::Error>> {
     
     loop {
         // 读取用户输入
-        let prompt = format!("{} ", "yufmath>".bright_green().bold());
-        let readline = rl.readline(&prompt);
+        // 修复终端显示问题：使用简单的提示符，避免彩色输出导致的显示偏移
+        let prompt = "yufmath> ";
+        let readline = rl.readline(prompt);
         
         match readline {
             Ok(line) => {
@@ -409,8 +410,9 @@ fn handle_multiline_input(rl: &mut DefaultEditor, first_line: String) -> Rustyli
     }
     
     loop {
-        let continuation_prompt = format!("{} ", "     ...".bright_black());
-        let line = rl.readline(&continuation_prompt)?;
+        // 修复终端显示问题：使用简单的续行提示符
+        let continuation_prompt = "     ... ";
+        let line = rl.readline(continuation_prompt)?;
         
         if line.trim().is_empty() {
             // 空行表示输入结束
