@@ -5,7 +5,7 @@
 use rustyline::error::ReadlineError;
 use rustyline::{DefaultEditor, Result as RustylineResult};
 use std::collections::HashMap;
-use colored::*;
+use ansi_term::Colour;
 use crate::{Yufmath, Expression};
 use crate::core::Number;
 use crate::formatter::{FormatOptions, FormatType, TerminalFormatter};
@@ -38,7 +38,8 @@ impl InteractiveSession {
         
         let mut terminal_formatter = TerminalFormatter::new();
         terminal_formatter.set_colors_enabled(true);
-        terminal_formatter.set_approximations_enabled(true);
+        // 默认禁用近似值显示以避免精度问题
+        terminal_formatter.set_approximations_enabled(false);
         
         Self {
             yufmath,
@@ -47,7 +48,8 @@ impl InteractiveSession {
             terminal_formatter,
             verbose: false,
             colors_enabled: true,
-            show_approximations: true,
+            // 默认禁用近似值显示以避免精度问题
+            show_approximations: false,
         }
     }
     
@@ -97,25 +99,41 @@ impl InteractiveSession {
             }
             "verbose" => {
                 self.verbose = !self.verbose;
-                let status = if self.verbose { "开启".green() } else { "关闭".red() };
+                let status = if self.verbose { 
+                    Colour::Green.paint("开启").to_string() 
+                } else { 
+                    Colour::Red.paint("关闭").to_string() 
+                };
                 Ok(Some(format!("详细模式: {}", status)))
             }
             "colors" => {
                 self.colors_enabled = !self.colors_enabled;
                 self.terminal_formatter.set_colors_enabled(self.colors_enabled);
-                let status = if self.colors_enabled { "开启".green() } else { "关闭".red() };
+                let status = if self.colors_enabled { 
+                    Colour::Green.paint("开启").to_string() 
+                } else { 
+                    Colour::Red.paint("关闭").to_string() 
+                };
                 Ok(Some(format!("颜色输出: {}", status)))
             }
             "approx" | "approximations" => {
                 self.show_approximations = !self.show_approximations;
                 self.terminal_formatter.set_approximations_enabled(self.show_approximations);
-                let status = if self.show_approximations { "开启".green() } else { "关闭".red() };
+                let status = if self.show_approximations { 
+                    Colour::Green.paint("开启").to_string() 
+                } else { 
+                    Colour::Red.paint("关闭").to_string() 
+                };
                 Ok(Some(format!("数值近似值: {}", status)))
             }
             "enhanced" | "enhanced_simplify" => {
                 let current_status = self.yufmath.is_enhanced_simplify_enabled();
                 self.yufmath.set_enhanced_simplify(!current_status);
-                let status = if !current_status { "开启".green() } else { "关闭".red() };
+                let status = if !current_status { 
+                    Colour::Green.paint("开启").to_string() 
+                } else { 
+                    Colour::Red.paint("关闭").to_string() 
+                };
                 Ok(Some(format!("增强化简功能: {}", status)))
             }
             input if input.starts_with("format ") => {
@@ -249,38 +267,38 @@ impl InteractiveSession {
 
 输入多行表达式时，以空行结束输入。
 "#,
-            "Yufmath 交互式计算器帮助".bright_cyan().bold(),
-            "基本命令".bright_yellow(),
-            "help, ?".green(),
-            "quit, exit, q".green(),
-            "clear".green(),
-            "vars, variables".green(),
-            "verbose".green(),
-            "colors".green(),
-            "approx, approximations".green(),
-            "enhanced, enhanced_simplify".green(),
-            "格式化命令".bright_yellow(),
-            "format <type>".green(),
-            "precision <n>".green(),
-            "approx_precision <n>".green(),
-            "数学运算".bright_yellow(),
-            "2 + 3".cyan(),
-            "x^2 + 2*x + 1".cyan(),
-            "sin(pi/2)".cyan(),
-            "diff(x^2, x)".cyan(),
-            "integrate(x, x)".cyan(),
-            "变量赋值".bright_yellow(),
-            "x = 5".cyan(),
-            "y = x^2 + 1".cyan(),
-            "示例".bright_yellow(),
-            "yufmath>".bright_green(),
-            "5".bright_cyan(),
-            "yufmath>".bright_green(),
-            "x = 10".bright_cyan(),
-            "yufmath>".bright_green(),
-            "√(3) ≈ 1.732051".bright_cyan(),
-            "yufmath>".bright_green(),
-            "sin(π ≈ 3.141593/2 ≈ 1.570796) ≈ 1.000000".bright_cyan(),
+            Colour::Cyan.bold().paint("Yufmath 交互式计算器帮助"),
+            Colour::Yellow.bold().paint("基本命令"),
+            Colour::Green.paint("help, ?"),
+            Colour::Green.paint("quit, exit, q"),
+            Colour::Green.paint("clear"),
+            Colour::Green.paint("vars, variables"),
+            Colour::Green.paint("verbose"),
+            Colour::Green.paint("colors"),
+            Colour::Green.paint("approx, approximations"),
+            Colour::Green.paint("enhanced, enhanced_simplify"),
+            Colour::Yellow.bold().paint("格式化命令"),
+            Colour::Green.paint("format <type>"),
+            Colour::Green.paint("precision <n>"),
+            Colour::Green.paint("approx_precision <n>"),
+            Colour::Yellow.bold().paint("数学运算"),
+            Colour::Cyan.paint("2 + 3"),
+            Colour::Cyan.paint("x^2 + 2*x + 1"),
+            Colour::Cyan.paint("sin(pi/2)"),
+            Colour::Cyan.paint("diff(x^2, x)"),
+            Colour::Cyan.paint("integrate(x, x)"),
+            Colour::Yellow.bold().paint("变量赋值"),
+            Colour::Cyan.paint("x = 5"),
+            Colour::Cyan.paint("y = x^2 + 1"),
+            Colour::Yellow.bold().paint("示例"),
+            Colour::Green.bold().paint("yufmath>"),
+            Colour::Cyan.bold().paint("5"),
+            Colour::Green.bold().paint("yufmath>"),
+            Colour::Cyan.bold().paint("x = 10"),
+            Colour::Green.bold().paint("yufmath>"),
+            Colour::Cyan.bold().paint("√(3) ≈ 1.732051"),
+            Colour::Green.bold().paint("yufmath>"),
+            Colour::Cyan.bold().paint("sin(π ≈ 3.141593/2 ≈ 1.570796) ≈ 1.000000"),
         )
     }
     
@@ -326,7 +344,7 @@ impl InteractiveSession {
             "latex" | "tex" => FormatType::LaTeX,
             "mathml" | "xml" => FormatType::MathML,
             _ => {
-                return Ok(Some("无效的格式类型。可用格式: standard, terminal, latex, mathml".red().to_string()));
+                return Ok(Some(Colour::Red.paint("无效的格式类型。可用格式: standard, terminal, latex, mathml").to_string()));
             }
         };
         
@@ -334,10 +352,10 @@ impl InteractiveSession {
         self.yufmath.set_format_options(self.format_options.clone());
         
         let format_name = match new_format {
-            FormatType::Standard => "标准格式".cyan(),
-            FormatType::Terminal => "终端彩色格式".cyan(),
-            FormatType::LaTeX => "LaTeX 格式".cyan(),
-            FormatType::MathML => "MathML 格式".cyan(),
+            FormatType::Standard => Colour::Cyan.paint("标准格式").to_string(),
+            FormatType::Terminal => Colour::Cyan.paint("终端彩色格式").to_string(),
+            FormatType::LaTeX => Colour::Cyan.paint("LaTeX 格式").to_string(),
+            FormatType::MathML => Colour::Cyan.paint("MathML 格式").to_string(),
         };
         
         Ok(Some(format!("输出格式已设置为: {}", format_name)))
@@ -349,10 +367,10 @@ impl InteractiveSession {
             Ok(precision) => {
                 self.format_options.precision = Some(precision);
                 self.yufmath.set_format_options(self.format_options.clone());
-                Ok(Some(format!("数值精度已设置为: {}", precision.to_string().cyan())))
+                Ok(Some(format!("数值精度已设置为: {}", Colour::Cyan.paint(precision.to_string()))))
             }
             Err(_) => {
-                Ok(Some("无效的精度值，请输入正整数".red().to_string()))
+                Ok(Some(Colour::Red.paint("无效的精度值，请输入正整数").to_string()))
             }
         }
     }
@@ -362,10 +380,10 @@ impl InteractiveSession {
         match precision_str.parse::<usize>() {
             Ok(precision) => {
                 self.terminal_formatter.set_approximation_precision(precision);
-                Ok(Some(format!("近似值精度已设置为: {}", precision.to_string().cyan())))
+                Ok(Some(format!("近似值精度已设置为: {}", Colour::Cyan.paint(precision.to_string()))))
             }
             Err(_) => {
-                Ok(Some("无效的精度值，请输入正整数".red().to_string()))
+                Ok(Some(Colour::Red.paint("无效的精度值，请输入正整数").to_string()))
             }
         }
     }
@@ -374,11 +392,13 @@ impl InteractiveSession {
 /// 运行交互式模式
 pub fn run_interactive() -> Result<(), Box<dyn std::error::Error>> {
     println!("{} {} - {}", 
-        "Yufmath".bright_cyan().bold(),
-        format!("v{}", crate::VERSION).bright_green(),
-        "计算机代数系统".bright_white());
-    println!("{}", "━".repeat(50).bright_black());
-    println!("输入 {} 查看帮助，输入 {} 退出", "'help'".green(), "'quit'".red());
+        Colour::Cyan.bold().paint("Yufmath"),
+        Colour::Green.bold().paint(format!("v{}", crate::VERSION)),
+        Colour::White.bold().paint("计算机代数系统"));
+    println!("{}", Colour::Black.bold().paint("━".repeat(50)));
+    println!("输入 {} 查看帮助，输入 {} 退出", 
+        Colour::Green.paint("'help'"), 
+        Colour::Red.paint("'quit'"));
     println!();
     
     let mut rl = DefaultEditor::new()?;
@@ -413,7 +433,7 @@ pub fn run_interactive() -> Result<(), Box<dyn std::error::Error>> {
                 if input.trim().to_lowercase() == "quit" 
                     || input.trim().to_lowercase() == "exit" 
                     || input.trim().to_lowercase() == "q" {
-                    println!("{}", "再见！".bright_cyan());
+                    println!("{}", Colour::Cyan.bold().paint("再见！"));
                     break;
                 }
                 
@@ -425,20 +445,22 @@ pub fn run_interactive() -> Result<(), Box<dyn std::error::Error>> {
                         }
                     }
                     Err(e) => {
-                        eprintln!("{} {}", "错误:".bright_red(), e.to_string().red());
+                        eprintln!("{} {}", 
+                            Colour::Red.bold().paint("错误:"), 
+                            Colour::Red.paint(e.to_string()));
                     }
                 }
             }
             Err(ReadlineError::Interrupted) => {
-                println!("{}", "^C".bright_yellow());
+                println!("{}", Colour::Yellow.bold().paint("^C"));
                 continue;
             }
             Err(ReadlineError::Eof) => {
-                println!("{}", "^D".bright_yellow());
+                println!("{}", Colour::Yellow.bold().paint("^D"));
                 break;
             }
             Err(err) => {
-                eprintln!("{} {:?}", "错误:".bright_red(), err);
+                eprintln!("{} {:?}", Colour::Red.bold().paint("错误:"), err);
                 break;
             }
         }

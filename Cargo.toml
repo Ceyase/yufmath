@@ -30,7 +30,7 @@ clap = { version = "4.0", features = ["derive"] }
 rustyline = "13.0"
 
 # 终端颜色支持
-colored = "2.0"
+ansi_term = "0.12"
 
 # 进度条支持
 indicatif = "0.17"

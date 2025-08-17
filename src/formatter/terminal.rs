@@ -4,7 +4,7 @@
 
 use crate::core::{Expression, Number, MathConstant, BinaryOperator, UnaryOperator};
 use super::{Formatter, FormatOptions};
-use colored::*;
+use ansi_term::Colour;
 use num_traits::{ToPrimitive, Zero};
 use std::f64::consts;
 
@@ -25,7 +25,8 @@ impl TerminalFormatter {
         Self {
             options: FormatOptions::default(),
             enable_colors: true,
-            show_approximations: true,
+            // 默认禁用近似值显示以避免精度问题
+            show_approximations: false,
             approximation_precision: 6,
         }
     }
@@ -48,7 +49,7 @@ impl TerminalFormatter {
     /// 为数字着色
     fn colorize_number(&self, text: &str) -> String {
         if self.enable_colors {
-            text.bright_cyan().to_string()
+            Colour::Cyan.bold().paint(text).to_string()
         } else {
             text.to_string()
         }
@@ -57,7 +58,7 @@ impl TerminalFormatter {
     /// 为变量着色
     fn colorize_variable(&self, text: &str) -> String {
         if self.enable_colors {
-            text.bright_green().to_string()
+            Colour::Green.bold().paint(text).to_string()
         } else {
             text.to_string()
         }
@@ -66,7 +67,7 @@ impl TerminalFormatter {
     /// 为常量着色
     fn colorize_constant(&self, text: &str) -> String {
         if self.enable_colors {
-            text.bright_magenta().to_string()
+            Colour::Purple.bold().paint(text).to_string()
         } else {
             text.to_string()
         }
@@ -75,7 +76,7 @@ impl TerminalFormatter {
     /// 为运算符着色
     fn colorize_operator(&self, text: &str) -> String {
         if self.enable_colors {
-            text.bright_yellow().to_string()
+            Colour::Yellow.bold().paint(text).to_string()
         } else {
             text.to_string()
         }
@@ -84,7 +85,7 @@ impl TerminalFormatter {
     /// 为函数名着色
     fn colorize_function(&self, text: &str) -> String {
         if self.enable_colors {
-            text.bright_blue().to_string()
+            Colour::Blue.bold().paint(text).to_string()
         } else {
             text.to_string()
         }
@@ -93,7 +94,7 @@ impl TerminalFormatter {
     /// 为括号着色
     fn colorize_parentheses(&self, text: &str) -> String {
         if self.enable_colors {
-            text.white().to_string()
+            Colour::White.paint(text).to_string()
         } else {
             text.to_string()
         }
@@ -102,7 +103,7 @@ impl TerminalFormatter {
     /// 为近似值着色
     fn colorize_approximation(&self, text: &str) -> String {
         if self.enable_colors {
-            text.bright_black().to_string()
+            Colour::Black.bold().paint(text).to_string()
         } else {
             text.to_string()
         }
