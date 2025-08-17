@@ -351,6 +351,9 @@ impl EnhancedSimplifier {
                     "sin" => self.simplify_sine_function(args),
                     "cos" => self.simplify_cosine_function(args),
                     "tan" => self.simplify_tangent_function(args),
+                    "asin" | "arcsin" => self.simplify_arcsine_function(args),
+                    "acos" | "arccos" => self.simplify_arccosine_function(args),
+                    "atan" | "arctan" => self.simplify_arctangent_function(args),
                     _ => {
                         // 递归处理参数
                         let args_simplified: Result<Vec<_>, _> = args.iter()
@@ -388,9 +391,51 @@ impl EnhancedSimplifier {
         
         // 应用诱导公式
         match arg {
-            // sin(-x) = -sin(x)
+            // sin(-x) = -sin(x) (奇函数性质)
             Expression::UnaryOp { op: UnaryOperator::Negate, operand } => {
                 Ok(Expression::negate(Expression::function("sin", vec![operand.as_ref().clone()])))
+            }
+            
+            // sin(π - x) = sin(x)
+            Expression::BinaryOp { op: BinaryOperator::Subtract, left, right } 
+                if matches!(left.as_ref(), Expression::Constant(MathConstant::Pi)) => {
+                Ok(Expression::function("sin", vec![right.as_ref().clone()]))
+            }
+            
+            // sin(π + x) = -sin(x)
+            Expression::BinaryOp { op: BinaryOperator::Add, left, right } 
+                if matches!(left.as_ref(), Expression::Constant(MathConstant::Pi)) => {
+                Ok(Expression::negate(Expression::function("sin", vec![right.as_ref().clone()])))
+            }
+            Expression::BinaryOp { op: BinaryOperator::Add, left, right } 
+                if matches!(right.as_ref(), Expression::Constant(MathConstant::Pi)) => {
+                Ok(Expression::negate(Expression::function("sin", vec![left.as_ref().clone()])))
+            }
+            
+            // sin(2π + x) = sin(x) (周期性)
+            Expression::BinaryOp { op: BinaryOperator::Add, left, right } 
+                if self.is_multiple_of_2pi(left) => {
+                Ok(Expression::function("sin", vec![right.as_ref().clone()]))
+            }
+            Expression::BinaryOp { op: BinaryOperator::Add, left, right } 
+                if self.is_multiple_of_2pi(right) => {
+                Ok(Expression::function("sin", vec![left.as_ref().clone()]))
+            }
+            
+            // sin(π/2 - x) = cos(x) (余角公式)
+            Expression::BinaryOp { op: BinaryOperator::Subtract, left, right } 
+                if self.is_pi_over_2(left) => {
+                Ok(Expression::function("cos", vec![right.as_ref().clone()]))
+            }
+            
+            // sin(π/2 + x) = cos(x) (余角公式)
+            Expression::BinaryOp { op: BinaryOperator::Add, left, right } 
+                if self.is_pi_over_2(left) => {
+                Ok(Expression::function("cos", vec![right.as_ref().clone()]))
+            }
+            Expression::BinaryOp { op: BinaryOperator::Add, left, right } 
+                if self.is_pi_over_2(right) => {
+                Ok(Expression::function("cos", vec![left.as_ref().clone()]))
             }
             
             // 特殊角度值
@@ -408,9 +453,51 @@ impl EnhancedSimplifier {
         
         // 应用诱导公式
         match arg {
-            // cos(-x) = cos(x)
+            // cos(-x) = cos(x) (偶函数性质)
             Expression::UnaryOp { op: UnaryOperator::Negate, operand } => {
                 Ok(Expression::function("cos", vec![operand.as_ref().clone()]))
+            }
+            
+            // cos(π - x) = -cos(x)
+            Expression::BinaryOp { op: BinaryOperator::Subtract, left, right } 
+                if matches!(left.as_ref(), Expression::Constant(MathConstant::Pi)) => {
+                Ok(Expression::negate(Expression::function("cos", vec![right.as_ref().clone()])))
+            }
+            
+            // cos(π + x) = -cos(x)
+            Expression::BinaryOp { op: BinaryOperator::Add, left, right } 
+                if matches!(left.as_ref(), Expression::Constant(MathConstant::Pi)) => {
+                Ok(Expression::negate(Expression::function("cos", vec![right.as_ref().clone()])))
+            }
+            Expression::BinaryOp { op: BinaryOperator::Add, left, right } 
+                if matches!(right.as_ref(), Expression::Constant(MathConstant::Pi)) => {
+                Ok(Expression::negate(Expression::function("cos", vec![left.as_ref().clone()])))
+            }
+            
+            // cos(2π + x) = cos(x) (周期性)
+            Expression::BinaryOp { op: BinaryOperator::Add, left, right } 
+                if self.is_multiple_of_2pi(left) => {
+                Ok(Expression::function("cos", vec![right.as_ref().clone()]))
+            }
+            Expression::BinaryOp { op: BinaryOperator::Add, left, right } 
+                if self.is_multiple_of_2pi(right) => {
+                Ok(Expression::function("cos", vec![left.as_ref().clone()]))
+            }
+            
+            // cos(π/2 - x) = sin(x) (余角公式)
+            Expression::BinaryOp { op: BinaryOperator::Subtract, left, right } 
+                if self.is_pi_over_2(left) => {
+                Ok(Expression::function("sin", vec![right.as_ref().clone()]))
+            }
+            
+            // cos(π/2 + x) = -sin(x) (余角公式)
+            Expression::BinaryOp { op: BinaryOperator::Add, left, right } 
+                if self.is_pi_over_2(left) => {
+                Ok(Expression::negate(Expression::function("sin", vec![right.as_ref().clone()])))
+            }
+            Expression::BinaryOp { op: BinaryOperator::Add, left, right } 
+                if self.is_pi_over_2(right) => {
+                Ok(Expression::negate(Expression::function("sin", vec![left.as_ref().clone()])))
             }
             
             // 特殊角度值
@@ -428,9 +515,50 @@ impl EnhancedSimplifier {
         
         // 应用诱导公式
         match arg {
-            // tan(-x) = -tan(x)
+            // tan(-x) = -tan(x) (奇函数性质)
             Expression::UnaryOp { op: UnaryOperator::Negate, operand } => {
                 Ok(Expression::negate(Expression::function("tan", vec![operand.as_ref().clone()])))
+            }
+            
+            // tan(π + x) = tan(x) (周期性，周期为π)
+            Expression::BinaryOp { op: BinaryOperator::Add, left, right } 
+                if matches!(left.as_ref(), Expression::Constant(MathConstant::Pi)) => {
+                Ok(Expression::function("tan", vec![right.as_ref().clone()]))
+            }
+            Expression::BinaryOp { op: BinaryOperator::Add, left, right } 
+                if matches!(right.as_ref(), Expression::Constant(MathConstant::Pi)) => {
+                Ok(Expression::function("tan", vec![left.as_ref().clone()]))
+            }
+            
+            // tan(π - x) = -tan(x)
+            Expression::BinaryOp { op: BinaryOperator::Subtract, left, right } 
+                if matches!(left.as_ref(), Expression::Constant(MathConstant::Pi)) => {
+                Ok(Expression::negate(Expression::function("tan", vec![right.as_ref().clone()])))
+            }
+            
+            // tan(π/2 - x) = cot(x) = 1/tan(x)
+            Expression::BinaryOp { op: BinaryOperator::Subtract, left, right } 
+                if self.is_pi_over_2(left) => {
+                Ok(Expression::divide(
+                    Expression::Number(Number::one()),
+                    Expression::function("tan", vec![right.as_ref().clone()])
+                ))
+            }
+            
+            // tan(π/2 + x) = -cot(x) = -1/tan(x)
+            Expression::BinaryOp { op: BinaryOperator::Add, left, right } 
+                if self.is_pi_over_2(left) => {
+                Ok(Expression::negate(Expression::divide(
+                    Expression::Number(Number::one()),
+                    Expression::function("tan", vec![right.as_ref().clone()])
+                )))
+            }
+            Expression::BinaryOp { op: BinaryOperator::Add, left, right } 
+                if self.is_pi_over_2(right) => {
+                Ok(Expression::negate(Expression::divide(
+                    Expression::Number(Number::one()),
+                    Expression::function("tan", vec![left.as_ref().clone()])
+                )))
             }
             
             // 特殊角度值
@@ -438,16 +566,224 @@ impl EnhancedSimplifier {
         }
     }
     
+    /// 化简反正弦函数
+    fn simplify_arcsine_function(&self, args: &[Expression]) -> Result<Expression, ComputeError> {
+        if args.len() != 1 {
+            return Ok(Expression::function("asin", args.to_vec()));
+        }
+        
+        let arg = &args[0];
+        
+        match arg {
+            // asin(-x) = -asin(x) (奇函数性质)
+            Expression::UnaryOp { op: UnaryOperator::Negate, operand } => {
+                Ok(Expression::negate(Expression::function("asin", vec![operand.as_ref().clone()])))
+            }
+            
+            // asin(sin(x)) = x (在定义域内)
+            Expression::Function { name, args: inner_args } if name == "sin" && inner_args.len() == 1 => {
+                // 简化情况：假设 x 在 [-π/2, π/2] 范围内
+                Ok(inner_args[0].clone())
+            }
+            
+            // 特殊值
+            Expression::Number(n) => {
+                if n.is_zero() {
+                    Ok(Expression::Number(Number::zero()))
+                } else if n.is_one() {
+                    Ok(Expression::divide(
+                        Expression::Constant(MathConstant::Pi),
+                        Expression::Number(Number::integer(2))
+                    ))
+                } else if n == &Number::integer(-1) {
+                    Ok(Expression::negate(Expression::divide(
+                        Expression::Constant(MathConstant::Pi),
+                        Expression::Number(Number::integer(2))
+                    )))
+                } else {
+                    Ok(Expression::function("asin", args.to_vec()))
+                }
+            }
+            
+            _ => Ok(Expression::function("asin", args.to_vec()))
+        }
+    }
+    
+    /// 化简反余弦函数
+    fn simplify_arccosine_function(&self, args: &[Expression]) -> Result<Expression, ComputeError> {
+        if args.len() != 1 {
+            return Ok(Expression::function("acos", args.to_vec()));
+        }
+        
+        let arg = &args[0];
+        
+        match arg {
+            // acos(cos(x)) = x (在定义域内)
+            Expression::Function { name, args: inner_args } if name == "cos" && inner_args.len() == 1 => {
+                // 简化情况：假设 x 在 [0, π] 范围内
+                Ok(inner_args[0].clone())
+            }
+            
+            // 特殊值
+            Expression::Number(n) => {
+                if n.is_one() {
+                    Ok(Expression::Number(Number::zero()))
+                } else if n.is_zero() {
+                    Ok(Expression::divide(
+                        Expression::Constant(MathConstant::Pi),
+                        Expression::Number(Number::integer(2))
+                    ))
+                } else if n == &Number::integer(-1) {
+                    Ok(Expression::Constant(MathConstant::Pi))
+                } else {
+                    Ok(Expression::function("acos", args.to_vec()))
+                }
+            }
+            
+            _ => Ok(Expression::function("acos", args.to_vec()))
+        }
+    }
+    
+    /// 化简反正切函数
+    fn simplify_arctangent_function(&self, args: &[Expression]) -> Result<Expression, ComputeError> {
+        if args.len() != 1 {
+            return Ok(Expression::function("atan", args.to_vec()));
+        }
+        
+        let arg = &args[0];
+        
+        match arg {
+            // atan(-x) = -atan(x) (奇函数性质)
+            Expression::UnaryOp { op: UnaryOperator::Negate, operand } => {
+                Ok(Expression::negate(Expression::function("atan", vec![operand.as_ref().clone()])))
+            }
+            
+            // atan(tan(x)) = x (在定义域内)
+            Expression::Function { name, args: inner_args } if name == "tan" && inner_args.len() == 1 => {
+                // 简化情况：假设 x 在 (-π/2, π/2) 范围内
+                Ok(inner_args[0].clone())
+            }
+            
+            // 特殊值
+            Expression::Number(n) => {
+                if n.is_zero() {
+                    Ok(Expression::Number(Number::zero()))
+                } else if n.is_one() {
+                    Ok(Expression::divide(
+                        Expression::Constant(MathConstant::Pi),
+                        Expression::Number(Number::integer(4))
+                    ))
+                } else if n == &Number::integer(-1) {
+                    Ok(Expression::negate(Expression::divide(
+                        Expression::Constant(MathConstant::Pi),
+                        Expression::Number(Number::integer(4))
+                    )))
+                } else {
+                    Ok(Expression::function("atan", args.to_vec()))
+                }
+            }
+            
+            _ => Ok(Expression::function("atan", args.to_vec()))
+        }
+    }
+
     /// 应用三角恒等式
     fn apply_trigonometric_identities(&self, op: &BinaryOperator, left: &Expression, right: &Expression) -> Result<Expression, ComputeError> {
         match op {
             BinaryOperator::Add => {
-                // sin²x + cos²x = 1
+                // sin²x + cos²x = 1 (毕达哥拉斯恒等式)
                 if self.is_sin_squared(left) && self.is_cos_squared_same_arg(right, left) {
                     return Ok(Expression::Number(Number::one()));
                 }
                 if self.is_cos_squared(left) && self.is_sin_squared_same_arg(right, left) {
                     return Ok(Expression::Number(Number::one()));
+                }
+                
+                // 和角公式的逆向应用
+                // sin(A)cos(B) + cos(A)sin(B) = sin(A+B)
+                if let Some((a, b)) = self.match_sine_cosine_sum_pattern(left, right) {
+                    return Ok(Expression::function("sin", vec![Expression::add(a, b)]));
+                }
+                
+                // cos(A)cos(B) - sin(A)sin(B) = cos(A+B) (这里是加法，所以检查是否有负号)
+                if let Some((a, b)) = self.match_cosine_cosine_pattern(left, right) {
+                    return Ok(Expression::function("cos", vec![Expression::subtract(a, b)]));
+                }
+            }
+            
+            BinaryOperator::Subtract => {
+                // cos(A)cos(B) + sin(A)sin(B) = cos(A-B)
+                if let Some((a, b)) = self.match_cosine_cosine_pattern(left, right) {
+                    return Ok(Expression::function("cos", vec![Expression::subtract(a, b)]));
+                }
+                
+                // sin(A)cos(B) - cos(A)sin(B) = sin(A-B)
+                if let Some((a, b)) = self.match_sine_cosine_diff_pattern(left, right) {
+                    return Ok(Expression::function("sin", vec![Expression::subtract(a, b)]));
+                }
+            }
+            
+            BinaryOperator::Multiply => {
+                // 积化和差公式
+                // sin(A)sin(B) = 1/2[cos(A-B) - cos(A+B)]
+                if let Some((a, b)) = self.match_sine_sine_product(left, right) {
+                    let diff = Expression::subtract(a.clone(), b.clone());
+                    let sum = Expression::add(a, b);
+                    let cos_diff = Expression::function("cos", vec![diff]);
+                    let cos_sum = Expression::function("cos", vec![sum]);
+                    return Ok(Expression::multiply(
+                        Expression::Number(Number::rational(1, 2)),
+                        Expression::subtract(cos_diff, cos_sum)
+                    ));
+                }
+                
+                // cos(A)cos(B) = 1/2[cos(A-B) + cos(A+B)]
+                if let Some((a, b)) = self.match_cosine_cosine_product(left, right) {
+                    let diff = Expression::subtract(a.clone(), b.clone());
+                    let sum = Expression::add(a, b);
+                    let cos_diff = Expression::function("cos", vec![diff]);
+                    let cos_sum = Expression::function("cos", vec![sum]);
+                    return Ok(Expression::multiply(
+                        Expression::Number(Number::rational(1, 2)),
+                        Expression::add(cos_diff, cos_sum)
+                    ));
+                }
+                
+                // sin(A)cos(B) = 1/2[sin(A+B) + sin(A-B)]
+                if let Some((a, b)) = self.match_sine_cosine_product(left, right) {
+                    let sum = Expression::add(a.clone(), b.clone());
+                    let diff = Expression::subtract(a, b);
+                    let sin_sum = Expression::function("sin", vec![sum]);
+                    let sin_diff = Expression::function("sin", vec![diff]);
+                    return Ok(Expression::multiply(
+                        Expression::Number(Number::rational(1, 2)),
+                        Expression::add(sin_sum, sin_diff)
+                    ));
+                }
+            }
+            
+            BinaryOperator::Divide => {
+                // tan(x) = sin(x)/cos(x)
+                if let (Expression::Function { name: sin_name, args: sin_args },
+                        Expression::Function { name: cos_name, args: cos_args }) = (left, right) {
+                    if sin_name == "sin" && cos_name == "cos" && sin_args.len() == 1 && cos_args.len() == 1 {
+                        if sin_args[0] == cos_args[0] {
+                            return Ok(Expression::function("tan", vec![sin_args[0].clone()]));
+                        }
+                    }
+                }
+                
+                // cot(x) = cos(x)/sin(x) = 1/tan(x)
+                if let (Expression::Function { name: cos_name, args: cos_args },
+                        Expression::Function { name: sin_name, args: sin_args }) = (left, right) {
+                    if cos_name == "cos" && sin_name == "sin" && cos_args.len() == 1 && sin_args.len() == 1 {
+                        if cos_args[0] == sin_args[0] {
+                            return Ok(Expression::divide(
+                                Expression::Number(Number::one()),
+                                Expression::function("tan", vec![cos_args[0].clone()])
+                            ));
+                        }
+                    }
                 }
             }
             
@@ -651,9 +987,89 @@ impl EnhancedSimplifier {
                 Ok(Expression::Number(Number::zero()))
             }
             
+            // sin(π) = 0
+            Expression::Constant(MathConstant::Pi) => {
+                Ok(Expression::Number(Number::zero()))
+            }
+            
             // sin(π/6) = 1/2
             Expression::BinaryOp { op: BinaryOperator::Divide, left, right } 
                 if matches!(left.as_ref(), Expression::Constant(MathConstant::Pi)) 
+                && matches!(right.as_ref(), Expression::Number(n) if n == &Number::integer(6)) => {
+                Ok(Expression::Number(Number::rational(1, 2)))
+            }
+            
+            // sin(π/4) = √2/2
+            Expression::BinaryOp { op: BinaryOperator::Divide, left, right } 
+                if matches!(left.as_ref(), Expression::Constant(MathConstant::Pi)) 
+                && matches!(right.as_ref(), Expression::Number(n) if n == &Number::integer(4)) => {
+                Ok(Expression::divide(
+                    Expression::function("sqrt", vec![Expression::Number(Number::integer(2))]),
+                    Expression::Number(Number::integer(2))
+                ))
+            }
+            
+            // sin(π/3) = √3/2
+            Expression::BinaryOp { op: BinaryOperator::Divide, left, right } 
+                if matches!(left.as_ref(), Expression::Constant(MathConstant::Pi)) 
+                && matches!(right.as_ref(), Expression::Number(n) if n == &Number::integer(3)) => {
+                Ok(Expression::divide(
+                    Expression::function("sqrt", vec![Expression::Number(Number::integer(3))]),
+                    Expression::Number(Number::integer(2))
+                ))
+            }
+            
+            // sin(π/2) = 1
+            Expression::BinaryOp { op: BinaryOperator::Divide, left, right } 
+                if matches!(left.as_ref(), Expression::Constant(MathConstant::Pi)) 
+                && matches!(right.as_ref(), Expression::Number(n) if n.is_two()) => {
+                Ok(Expression::Number(Number::one()))
+            }
+            
+            // sin(2π/3) = √3/2
+            Expression::BinaryOp { op: BinaryOperator::Divide, left, right } 
+                if matches!(left.as_ref(), Expression::BinaryOp { 
+                    op: BinaryOperator::Multiply, 
+                    left: l, 
+                    right: r 
+                } if (matches!(l.as_ref(), Expression::Number(n) if n.is_two()) && 
+                      matches!(r.as_ref(), Expression::Constant(MathConstant::Pi))) ||
+                     (matches!(r.as_ref(), Expression::Number(n) if n.is_two()) && 
+                      matches!(l.as_ref(), Expression::Constant(MathConstant::Pi))))
+                && matches!(right.as_ref(), Expression::Number(n) if n == &Number::integer(3)) => {
+                Ok(Expression::divide(
+                    Expression::function("sqrt", vec![Expression::Number(Number::integer(3))]),
+                    Expression::Number(Number::integer(2))
+                ))
+            }
+            
+            // sin(3π/4) = √2/2
+            Expression::BinaryOp { op: BinaryOperator::Divide, left, right } 
+                if matches!(left.as_ref(), Expression::BinaryOp { 
+                    op: BinaryOperator::Multiply, 
+                    left: l, 
+                    right: r 
+                } if (matches!(l.as_ref(), Expression::Number(n) if n == &Number::integer(3)) && 
+                      matches!(r.as_ref(), Expression::Constant(MathConstant::Pi))) ||
+                     (matches!(r.as_ref(), Expression::Number(n) if n == &Number::integer(3)) && 
+                      matches!(l.as_ref(), Expression::Constant(MathConstant::Pi))))
+                && matches!(right.as_ref(), Expression::Number(n) if n == &Number::integer(4)) => {
+                Ok(Expression::divide(
+                    Expression::function("sqrt", vec![Expression::Number(Number::integer(2))]),
+                    Expression::Number(Number::integer(2))
+                ))
+            }
+            
+            // sin(5π/6) = 1/2
+            Expression::BinaryOp { op: BinaryOperator::Divide, left, right } 
+                if matches!(left.as_ref(), Expression::BinaryOp { 
+                    op: BinaryOperator::Multiply, 
+                    left: l, 
+                    right: r 
+                } if (matches!(l.as_ref(), Expression::Number(n) if n == &Number::integer(5)) && 
+                      matches!(r.as_ref(), Expression::Constant(MathConstant::Pi))) ||
+                     (matches!(r.as_ref(), Expression::Number(n) if n == &Number::integer(5)) && 
+                      matches!(l.as_ref(), Expression::Constant(MathConstant::Pi))))
                 && matches!(right.as_ref(), Expression::Number(n) if n == &Number::integer(6)) => {
                 Ok(Expression::Number(Number::rational(1, 2)))
             }
@@ -670,6 +1086,93 @@ impl EnhancedSimplifier {
                 Ok(Expression::Number(Number::one()))
             }
             
+            // cos(π) = -1
+            Expression::Constant(MathConstant::Pi) => {
+                Ok(Expression::Number(Number::integer(-1)))
+            }
+            
+            // cos(π/6) = √3/2
+            Expression::BinaryOp { op: BinaryOperator::Divide, left, right } 
+                if matches!(left.as_ref(), Expression::Constant(MathConstant::Pi)) 
+                && matches!(right.as_ref(), Expression::Number(n) if n == &Number::integer(6)) => {
+                Ok(Expression::divide(
+                    Expression::function("sqrt", vec![Expression::Number(Number::integer(3))]),
+                    Expression::Number(Number::integer(2))
+                ))
+            }
+            
+            // cos(π/4) = √2/2
+            Expression::BinaryOp { op: BinaryOperator::Divide, left, right } 
+                if matches!(left.as_ref(), Expression::Constant(MathConstant::Pi)) 
+                && matches!(right.as_ref(), Expression::Number(n) if n == &Number::integer(4)) => {
+                Ok(Expression::divide(
+                    Expression::function("sqrt", vec![Expression::Number(Number::integer(2))]),
+                    Expression::Number(Number::integer(2))
+                ))
+            }
+            
+            // cos(π/3) = 1/2
+            Expression::BinaryOp { op: BinaryOperator::Divide, left, right } 
+                if matches!(left.as_ref(), Expression::Constant(MathConstant::Pi)) 
+                && matches!(right.as_ref(), Expression::Number(n) if n == &Number::integer(3)) => {
+                Ok(Expression::Number(Number::rational(1, 2)))
+            }
+            
+            // cos(π/2) = 0
+            Expression::BinaryOp { op: BinaryOperator::Divide, left, right } 
+                if matches!(left.as_ref(), Expression::Constant(MathConstant::Pi)) 
+                && matches!(right.as_ref(), Expression::Number(n) if n.is_two()) => {
+                Ok(Expression::Number(Number::zero()))
+            }
+            
+            // cos(2π/3) = -1/2
+            Expression::BinaryOp { op: BinaryOperator::Divide, left, right } 
+                if matches!(left.as_ref(), Expression::BinaryOp { 
+                    op: BinaryOperator::Multiply, 
+                    left: l, 
+                    right: r 
+                } if (matches!(l.as_ref(), Expression::Number(n) if n.is_two()) && 
+                      matches!(r.as_ref(), Expression::Constant(MathConstant::Pi))) ||
+                     (matches!(r.as_ref(), Expression::Number(n) if n.is_two()) && 
+                      matches!(l.as_ref(), Expression::Constant(MathConstant::Pi))))
+                && matches!(right.as_ref(), Expression::Number(n) if n == &Number::integer(3)) => {
+                Ok(Expression::Number(Number::rational(-1, 2)))
+            }
+            
+            // cos(3π/4) = -√2/2
+            Expression::BinaryOp { op: BinaryOperator::Divide, left, right } 
+                if matches!(left.as_ref(), Expression::BinaryOp { 
+                    op: BinaryOperator::Multiply, 
+                    left: l, 
+                    right: r 
+                } if (matches!(l.as_ref(), Expression::Number(n) if n == &Number::integer(3)) && 
+                      matches!(r.as_ref(), Expression::Constant(MathConstant::Pi))) ||
+                     (matches!(r.as_ref(), Expression::Number(n) if n == &Number::integer(3)) && 
+                      matches!(l.as_ref(), Expression::Constant(MathConstant::Pi))))
+                && matches!(right.as_ref(), Expression::Number(n) if n == &Number::integer(4)) => {
+                Ok(Expression::negate(Expression::divide(
+                    Expression::function("sqrt", vec![Expression::Number(Number::integer(2))]),
+                    Expression::Number(Number::integer(2))
+                )))
+            }
+            
+            // cos(5π/6) = -√3/2
+            Expression::BinaryOp { op: BinaryOperator::Divide, left, right } 
+                if matches!(left.as_ref(), Expression::BinaryOp { 
+                    op: BinaryOperator::Multiply, 
+                    left: l, 
+                    right: r 
+                } if (matches!(l.as_ref(), Expression::Number(n) if n == &Number::integer(5)) && 
+                      matches!(r.as_ref(), Expression::Constant(MathConstant::Pi))) ||
+                     (matches!(r.as_ref(), Expression::Number(n) if n == &Number::integer(5)) && 
+                      matches!(l.as_ref(), Expression::Constant(MathConstant::Pi))))
+                && matches!(right.as_ref(), Expression::Number(n) if n == &Number::integer(6)) => {
+                Ok(Expression::negate(Expression::divide(
+                    Expression::function("sqrt", vec![Expression::Number(Number::integer(3))]),
+                    Expression::Number(Number::integer(2))
+                )))
+            }
+            
             _ => Ok(Expression::function("cos", vec![arg.clone()]))
         }
     }
@@ -680,6 +1183,87 @@ impl EnhancedSimplifier {
             // tan(0) = 0
             Expression::Number(n) if n.is_zero() => {
                 Ok(Expression::Number(Number::zero()))
+            }
+            
+            // tan(π) = 0
+            Expression::Constant(MathConstant::Pi) => {
+                Ok(Expression::Number(Number::zero()))
+            }
+            
+            // tan(π/6) = √3/3 = 1/√3
+            Expression::BinaryOp { op: BinaryOperator::Divide, left, right } 
+                if matches!(left.as_ref(), Expression::Constant(MathConstant::Pi)) 
+                && matches!(right.as_ref(), Expression::Number(n) if n == &Number::integer(6)) => {
+                Ok(Expression::divide(
+                    Expression::Number(Number::one()),
+                    Expression::function("sqrt", vec![Expression::Number(Number::integer(3))])
+                ))
+            }
+            
+            // tan(π/4) = 1
+            Expression::BinaryOp { op: BinaryOperator::Divide, left, right } 
+                if matches!(left.as_ref(), Expression::Constant(MathConstant::Pi)) 
+                && matches!(right.as_ref(), Expression::Number(n) if n == &Number::integer(4)) => {
+                Ok(Expression::Number(Number::one()))
+            }
+            
+            // tan(π/3) = √3
+            Expression::BinaryOp { op: BinaryOperator::Divide, left, right } 
+                if matches!(left.as_ref(), Expression::Constant(MathConstant::Pi)) 
+                && matches!(right.as_ref(), Expression::Number(n) if n == &Number::integer(3)) => {
+                Ok(Expression::function("sqrt", vec![Expression::Number(Number::integer(3))]))
+            }
+            
+            // tan(π/2) = undefined (无穷大)
+            Expression::BinaryOp { op: BinaryOperator::Divide, left, right } 
+                if matches!(left.as_ref(), Expression::Constant(MathConstant::Pi)) 
+                && matches!(right.as_ref(), Expression::Number(n) if n.is_two()) => {
+                Ok(Expression::Constant(MathConstant::PositiveInfinity))
+            }
+            
+            // tan(2π/3) = -√3
+            Expression::BinaryOp { op: BinaryOperator::Divide, left, right } 
+                if matches!(left.as_ref(), Expression::BinaryOp { 
+                    op: BinaryOperator::Multiply, 
+                    left: l, 
+                    right: r 
+                } if (matches!(l.as_ref(), Expression::Number(n) if n.is_two()) && 
+                      matches!(r.as_ref(), Expression::Constant(MathConstant::Pi))) ||
+                     (matches!(r.as_ref(), Expression::Number(n) if n.is_two()) && 
+                      matches!(l.as_ref(), Expression::Constant(MathConstant::Pi))))
+                && matches!(right.as_ref(), Expression::Number(n) if n == &Number::integer(3)) => {
+                Ok(Expression::negate(Expression::function("sqrt", vec![Expression::Number(Number::integer(3))])))
+            }
+            
+            // tan(3π/4) = -1
+            Expression::BinaryOp { op: BinaryOperator::Divide, left, right } 
+                if matches!(left.as_ref(), Expression::BinaryOp { 
+                    op: BinaryOperator::Multiply, 
+                    left: l, 
+                    right: r 
+                } if (matches!(l.as_ref(), Expression::Number(n) if n == &Number::integer(3)) && 
+                      matches!(r.as_ref(), Expression::Constant(MathConstant::Pi))) ||
+                     (matches!(r.as_ref(), Expression::Number(n) if n == &Number::integer(3)) && 
+                      matches!(l.as_ref(), Expression::Constant(MathConstant::Pi))))
+                && matches!(right.as_ref(), Expression::Number(n) if n == &Number::integer(4)) => {
+                Ok(Expression::Number(Number::integer(-1)))
+            }
+            
+            // tan(5π/6) = -√3/3 = -1/√3
+            Expression::BinaryOp { op: BinaryOperator::Divide, left, right } 
+                if matches!(left.as_ref(), Expression::BinaryOp { 
+                    op: BinaryOperator::Multiply, 
+                    left: l, 
+                    right: r 
+                } if (matches!(l.as_ref(), Expression::Number(n) if n == &Number::integer(5)) && 
+                      matches!(r.as_ref(), Expression::Constant(MathConstant::Pi))) ||
+                     (matches!(r.as_ref(), Expression::Number(n) if n == &Number::integer(5)) && 
+                      matches!(l.as_ref(), Expression::Constant(MathConstant::Pi))))
+                && matches!(right.as_ref(), Expression::Number(n) if n == &Number::integer(6)) => {
+                Ok(Expression::negate(Expression::divide(
+                    Expression::Number(Number::one()),
+                    Expression::function("sqrt", vec![Expression::Number(Number::integer(3))])
+                )))
             }
             
             _ => Ok(Expression::function("tan", vec![arg.clone()]))
@@ -711,6 +1295,191 @@ impl EnhancedSimplifier {
         match expr {
             Expression::BinaryOp { op: BinaryOperator::Subtract, left, right } => {
                 Some((left.as_ref().clone(), right.as_ref().clone()))
+            }
+            _ => None,
+        }
+    }
+    
+    /// 检查是否为 π/2
+    fn is_pi_over_2(&self, expr: &Expression) -> bool {
+        matches!(expr, Expression::BinaryOp { 
+            op: BinaryOperator::Divide, 
+            left, 
+            right 
+        } if matches!(left.as_ref(), Expression::Constant(MathConstant::Pi)) &&
+             matches!(right.as_ref(), Expression::Number(n) if n.is_two()))
+    }
+    
+    /// 检查是否为 2π 的倍数
+    fn is_multiple_of_2pi(&self, expr: &Expression) -> bool {
+        match expr {
+            // 2π
+            Expression::BinaryOp { op: BinaryOperator::Multiply, left, right } => {
+                (matches!(left.as_ref(), Expression::Number(n) if n.is_two()) && 
+                 matches!(right.as_ref(), Expression::Constant(MathConstant::Pi))) ||
+                (matches!(right.as_ref(), Expression::Number(n) if n.is_two()) && 
+                 matches!(left.as_ref(), Expression::Constant(MathConstant::Pi)))
+            }
+            // n * 2π 形式
+            Expression::BinaryOp { op: BinaryOperator::Multiply, left, right } => {
+                if let Expression::BinaryOp { op: BinaryOperator::Multiply, left: inner_left, right: inner_right } = left.as_ref() {
+                    (matches!(inner_left.as_ref(), Expression::Number(n) if n.is_two()) && 
+                     matches!(inner_right.as_ref(), Expression::Constant(MathConstant::Pi))) ||
+                    (matches!(inner_right.as_ref(), Expression::Number(n) if n.is_two()) && 
+                     matches!(inner_left.as_ref(), Expression::Constant(MathConstant::Pi)))
+                } else if let Expression::BinaryOp { op: BinaryOperator::Multiply, left: inner_left, right: inner_right } = right.as_ref() {
+                    (matches!(inner_left.as_ref(), Expression::Number(n) if n.is_two()) && 
+                     matches!(inner_right.as_ref(), Expression::Constant(MathConstant::Pi))) ||
+                    (matches!(inner_right.as_ref(), Expression::Number(n) if n.is_two()) && 
+                     matches!(inner_left.as_ref(), Expression::Constant(MathConstant::Pi)))
+                } else {
+                    false
+                }
+            }
+            _ => false,
+        }
+    }
+    
+    /// 匹配 sin(A)cos(B) + cos(A)sin(B) 模式
+    fn match_sine_cosine_sum_pattern(&self, left: &Expression, right: &Expression) -> Option<(Expression, Expression)> {
+        // sin(A)cos(B) + cos(A)sin(B) = sin(A+B)
+        if let (Some((sin_arg, cos_arg1)), Some((cos_arg2, sin_arg2))) = (
+            self.extract_sine_cosine_product(left),
+            self.extract_cosine_sine_product(right)
+        ) {
+            if sin_arg == cos_arg2 && cos_arg1 == sin_arg2 {
+                return Some((sin_arg, cos_arg1));
+            }
+        }
+        None
+    }
+    
+    /// 匹配 sin(A)cos(B) - cos(A)sin(B) 模式
+    fn match_sine_cosine_diff_pattern(&self, left: &Expression, right: &Expression) -> Option<(Expression, Expression)> {
+        // sin(A)cos(B) - cos(A)sin(B) = sin(A-B)
+        if let (Some((sin_arg, cos_arg1)), Some((cos_arg2, sin_arg2))) = (
+            self.extract_sine_cosine_product(left),
+            self.extract_cosine_sine_product(right)
+        ) {
+            if sin_arg == cos_arg2 && cos_arg1 == sin_arg2 {
+                return Some((sin_arg, cos_arg1));
+            }
+        }
+        None
+    }
+    
+    /// 匹配 cos(A)cos(B) 模式
+    fn match_cosine_cosine_pattern(&self, left: &Expression, right: &Expression) -> Option<(Expression, Expression)> {
+        if let (Some(a), Some(b)) = (
+            self.extract_cosine_function(left),
+            self.extract_cosine_function(right)
+        ) {
+            Some((a, b))
+        } else {
+            None
+        }
+    }
+    
+    /// 匹配 sin(A)sin(B) 乘积
+    fn match_sine_sine_product(&self, left: &Expression, right: &Expression) -> Option<(Expression, Expression)> {
+        if let (Some(a), Some(b)) = (
+            self.extract_sine_function(left),
+            self.extract_sine_function(right)
+        ) {
+            Some((a, b))
+        } else {
+            None
+        }
+    }
+    
+    /// 匹配 cos(A)cos(B) 乘积
+    fn match_cosine_cosine_product(&self, left: &Expression, right: &Expression) -> Option<(Expression, Expression)> {
+        if let (Some(a), Some(b)) = (
+            self.extract_cosine_function(left),
+            self.extract_cosine_function(right)
+        ) {
+            Some((a, b))
+        } else {
+            None
+        }
+    }
+    
+    /// 匹配 sin(A)cos(B) 乘积
+    fn match_sine_cosine_product(&self, left: &Expression, right: &Expression) -> Option<(Expression, Expression)> {
+        if let (Some(sin_arg), Some(cos_arg)) = (
+            self.extract_sine_function(left),
+            self.extract_cosine_function(right)
+        ) {
+            Some((sin_arg, cos_arg))
+        } else if let (Some(cos_arg), Some(sin_arg)) = (
+            self.extract_cosine_function(left),
+            self.extract_sine_function(right)
+        ) {
+            Some((sin_arg, cos_arg))
+        } else {
+            None
+        }
+    }
+    
+    /// 提取 sin(A)cos(B) 乘积中的参数
+    fn extract_sine_cosine_product(&self, expr: &Expression) -> Option<(Expression, Expression)> {
+        match expr {
+            Expression::BinaryOp { op: BinaryOperator::Multiply, left, right } => {
+                if let (Some(sin_arg), Some(cos_arg)) = (
+                    self.extract_sine_function(left),
+                    self.extract_cosine_function(right)
+                ) {
+                    Some((sin_arg, cos_arg))
+                } else if let (Some(cos_arg), Some(sin_arg)) = (
+                    self.extract_cosine_function(left),
+                    self.extract_sine_function(right)
+                ) {
+                    Some((sin_arg, cos_arg))
+                } else {
+                    None
+                }
+            }
+            _ => None,
+        }
+    }
+    
+    /// 提取 cos(A)sin(B) 乘积中的参数
+    fn extract_cosine_sine_product(&self, expr: &Expression) -> Option<(Expression, Expression)> {
+        match expr {
+            Expression::BinaryOp { op: BinaryOperator::Multiply, left, right } => {
+                if let (Some(cos_arg), Some(sin_arg)) = (
+                    self.extract_cosine_function(left),
+                    self.extract_sine_function(right)
+                ) {
+                    Some((cos_arg, sin_arg))
+                } else if let (Some(sin_arg), Some(cos_arg)) = (
+                    self.extract_sine_function(left),
+                    self.extract_cosine_function(right)
+                ) {
+                    Some((cos_arg, sin_arg))
+                } else {
+                    None
+                }
+            }
+            _ => None,
+        }
+    }
+    
+    /// 提取正弦函数的参数
+    fn extract_sine_function(&self, expr: &Expression) -> Option<Expression> {
+        match expr {
+            Expression::Function { name, args } if name == "sin" && args.len() == 1 => {
+                Some(args[0].clone())
+            }
+            _ => None,
+        }
+    }
+    
+    /// 提取余弦函数的参数
+    fn extract_cosine_function(&self, expr: &Expression) -> Option<Expression> {
+        match expr {
+            Expression::Function { name, args } if name == "cos" && args.len() == 1 => {
+                Some(args[0].clone())
             }
             _ => None,
         }

@@ -42,8 +42,8 @@ impl InteractiveSession {
         
         let mut terminal_formatter = TerminalFormatter::new();
         terminal_formatter.set_colors_enabled(colors_enabled);
-        // 默认禁用近似值显示以避免精度问题
-        terminal_formatter.set_approximations_enabled(false);
+        // 默认启用近似值显示以便用户看到代数值
+        terminal_formatter.set_approximations_enabled(true);
         
         Self {
             yufmath,
@@ -52,8 +52,8 @@ impl InteractiveSession {
             terminal_formatter,
             verbose: false,
             color_config,
-            // 默认禁用近似值显示以避免精度问题
-            show_approximations: false,
+            // 默认启用近似值显示以便用户看到代数值
+            show_approximations: true,
         }
     }
     

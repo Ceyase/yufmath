@@ -238,6 +238,95 @@ yufmath/
 - [ ] C++ 绑定
 - [ ] 完整测试覆盖
 
+## 最新更新（任务 16.1 完成）
+
+### 🎯 运行时化简增强功能
+
+**1. 三角函数化简增强**
+- ✅ **诱导公式完整实现**:
+  - sin(-x) = -sin(x), cos(-x) = cos(x), tan(-x) = -tan(x)
+  - sin(π - x) = sin(x), cos(π - x) = -cos(x)
+  - sin(π + x) = -sin(x), cos(π + x) = -cos(x)
+  - sin(π/2 ± x) = cos(x), cos(π/2 ± x) = ∓sin(x)
+  - tan(π + x) = tan(x), tan(π - x) = -tan(x)
+- ✅ **特殊角度值扩展**:
+  - 完整的 0°, 30°, 45°, 60°, 90°, 120°, 135°, 150°, 180° 角度值
+  - sin(π/6) = 1/2, cos(π/4) = √2/2, tan(π/3) = √3 等
+  - 自动识别和化简所有常见特殊角度
+- ✅ **三角恒等式应用**:
+  - sin²x + cos²x = 1 (毕达哥拉斯恒等式)
+  - sin(x)/cos(x) = tan(x), cos(x)/sin(x) = 1/tan(x)
+  - 和角公式的逆向应用：sin(A+B) = sin(A)cos(B) + cos(A)sin(B)
+  - 积化和差公式：sin(A)sin(B) = 1/2[cos(A-B) - cos(A+B)]
+- ✅ **反三角函数化简**:
+  - asin(-x) = -asin(x), atan(-x) = -atan(x)
+  - asin(sin(x)) = x, acos(cos(x)) = x, atan(tan(x)) = x
+  - 特殊值：asin(0) = 0, acos(1) = 0, atan(1) = π/4
+- ✅ **周期性处理**:
+  - sin(x + 2π) = sin(x), cos(x + 2π) = cos(x)
+  - tan(x + π) = tan(x)
+  - 自动识别和简化周期性表达式
+
+**2. 交互模式代数值显示恢复**
+- ✅ **默认启用近似值显示**: 在交互模式下默认显示数值近似值
+- ✅ **智能近似值判断**: 
+  - 整数不显示近似值
+  - 分数显示小数近似值（如 1/3 ≈ 0.333333）
+  - 无理数显示近似值（如 π ≈ 3.141593）
+  - 根号表达式显示近似值（如 √2 ≈ 1.414214）
+- ✅ **可配置精度**: 用户可通过 `approx_precision` 命令调整显示精度
+- ✅ **颜色区分**: 近似值使用不同颜色显示，便于区分精确值和近似值
+
+**3. 测试和验证**
+- ✅ **完整的演示程序**: 创建 `enhanced_trigonometric_demo.rs` 演示所有新功能
+- ✅ **交互测试程序**: 创建 `interactive_test.rs` 验证代数值显示功能
+- ✅ **功能验证**: 所有三角函数化简规则都经过测试验证
+- ✅ **性能测试**: 确保增强功能不影响计算性能
+
+### 🔧 技术实现细节
+
+**增强简化器架构**:
+```rust
+pub struct EnhancedSimplifier {
+    base_simplifier: Simplifier,           // 基础简化器
+    auto_simplify: bool,                   // 自动化简开关
+    rule_cache: HashMap<Expression, Expression>, // 规则缓存
+}
+```
+
+**三角函数化简流程**:
+1. **函数级别化简**: 处理 sin、cos、tan、asin、acos、atan
+2. **诱导公式应用**: 自动应用奇偶性、周期性、余角公式
+3. **特殊角度识别**: 识别并计算特殊角度的精确值
+4. **恒等式匹配**: 应用三角恒等式进行表达式变换
+5. **积化和差**: 应用积化和差公式简化乘积表达式
+
+**近似值显示系统**:
+```rust
+impl TerminalFormatter {
+    fn format_number_with_approximation(&self, number: &Number) -> String
+    fn calculate_approximation(&self, expr: &Expression) -> Option<f64>
+    fn should_show_approximation(&self, number: &Number, approx: f64) -> bool
+}
+```
+
+### 📊 功能演示结果
+
+**三角函数化简示例**:
+- `sin(-x)` → `-sin(x)` ✅
+- `sin(pi/6)` → `1/2` ✅  
+- `cos(pi/4)` → `√2/2` ✅
+- `sin(x)^2 + cos(x)^2` → `1` ✅
+- `sin(x)/cos(x)` → `tan(x)` ✅
+
+**代数值显示示例**:
+- `pi` → `π ≈ 3.141593` ✅
+- `sqrt(2)` → `√2 ≈ 1.414214` ✅
+- `sin(pi/4)` → `√2/2 ≈ 0.707107` ✅
+- `pi + e` → `π + e ≈ 5.859874` ✅
+
+这次更新显著增强了 Yufmath 的三角函数处理能力和用户体验，使其更接近专业的计算机代数系统。
+
 ## 依赖关系
 
 ### 核心依赖

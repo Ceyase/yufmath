@@ -8,3 +8,18 @@ exit
 1+1
 quit
 2 + 3
+x = 10
+x
+x+10
+x
+y
+x
+x+12
+x = pi
+cos(x)
+sin(x)
+sin(2x)
+sin(2*x)
+sin(2*pi)
+quit
+pi
