@@ -1,0 +1,6 @@
+sqrt(3)+2+3+55
+sqrt(3)
+pi
+sqrt(2)+sqrt(8)
+sin(pi/4)
+quit

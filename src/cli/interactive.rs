@@ -8,7 +8,7 @@ use std::collections::HashMap;
 use ansi_term::Colour;
 use crate::{Yufmath, Expression};
 use crate::core::Number;
-use crate::formatter::{FormatOptions, FormatType, TerminalFormatter};
+use crate::formatter::{FormatOptions, FormatType, TerminalFormatter, Formatter};
 use super::terminal::{ColorConfig, supports_color};
 
 /// 交互式会话状态
@@ -230,10 +230,16 @@ impl InteractiveSession {
             println!("正在计算: {}", input);
         }
         
-        match self.yufmath.compute(input) {
-            Ok(result) => Ok(result),
-            Err(e) => Err(format!("计算错误: {}", e).into())
-        }
+        // 解析表达式
+        let expr = self.yufmath.parse(input)?;
+        
+        // 简化表达式
+        let simplified = self.yufmath.simplify(&expr)?;
+        
+        // 使用终端格式化器格式化结果
+        let result = self.terminal_formatter.format(&simplified);
+        
+        Ok(result)
     }
     
     /// 显示帮助信息

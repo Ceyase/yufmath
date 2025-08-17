@@ -64,6 +64,9 @@ impl EnhancedSimplifier {
         
         let mut result = expr.clone();
         
+        // 首先应用常量合并规则
+        result = self.apply_constant_folding(&result)?;
+        
         // 应用根号化简规则
         result = self.simplify_radicals(&result)?;
         
@@ -836,6 +839,36 @@ impl EnhancedSimplifier {
             return Ok(Expression::divide(simplified_num, simplified_den));
         }
         
+        // 常量合并：数字 + 数字 = 合并后的数字
+        if let (Expression::Number(n1), Expression::Number(n2)) = (left, right) {
+            return Ok(Expression::Number(n1.clone() + n2.clone()));
+        }
+        
+        // 常量项收集：表达式 + 常量 或 常量 + 表达式
+        let (constants, non_constants) = self.collect_constants_and_terms(&[left.clone(), right.clone()]);
+        
+        if constants.len() > 1 {
+            // 合并所有常量
+            let mut combined_constant = constants[0].clone();
+            for constant in constants.iter().skip(1) {
+                if let (Expression::Number(n1), Expression::Number(n2)) = (&combined_constant, constant) {
+                    combined_constant = Expression::Number(n1.clone() + n2.clone());
+                }
+            }
+            
+            // 构建结果：合并的常量 + 其他项
+            if non_constants.is_empty() {
+                return Ok(combined_constant);
+            } else if combined_constant == Expression::Number(Number::zero()) {
+                // 如果常量项为0，只返回非常量项
+                return Ok(self.combine_terms(non_constants));
+            } else {
+                let mut result_terms = vec![combined_constant];
+                result_terms.extend(non_constants);
+                return Ok(self.combine_terms(result_terms));
+            }
+        }
+        
         Ok(Expression::add(left.clone(), right.clone()))
     }
     
@@ -1288,6 +1321,199 @@ impl EnhancedSimplifier {
             }
             _ => None,
         }
+    }
+    
+    /// 收集表达式列表中的常量和非常量项
+    fn collect_constants_and_terms(&self, expressions: &[Expression]) -> (Vec<Expression>, Vec<Expression>) {
+        let mut constants = Vec::new();
+        let mut non_constants = Vec::new();
+        
+        for expr in expressions {
+            self.collect_terms_recursive(expr, &mut constants, &mut non_constants);
+        }
+        
+        (constants, non_constants)
+    }
+    
+    /// 递归收集加法表达式中的项
+    fn collect_terms_recursive(&self, expr: &Expression, constants: &mut Vec<Expression>, non_constants: &mut Vec<Expression>) {
+        match expr {
+            Expression::BinaryOp { op: BinaryOperator::Add, left, right } => {
+                // 递归处理加法的左右两边
+                self.collect_terms_recursive(left, constants, non_constants);
+                self.collect_terms_recursive(right, constants, non_constants);
+            }
+            Expression::Number(_) => {
+                constants.push(expr.clone());
+            }
+            _ => {
+                non_constants.push(expr.clone());
+            }
+        }
+    }
+    
+    /// 将多个项合并为一个表达式
+    fn combine_terms(&self, terms: Vec<Expression>) -> Expression {
+        if terms.is_empty() {
+            return Expression::Number(Number::zero());
+        }
+        
+        if terms.len() == 1 {
+            return terms[0].clone();
+        }
+        
+        // 从左到右依次相加
+        let mut result = terms[0].clone();
+        for term in terms.iter().skip(1) {
+            result = Expression::add(result, term.clone());
+        }
+        
+        result
+    }
+    
+    /// 应用常量折叠规则
+    fn apply_constant_folding(&mut self, expr: &Expression) -> Result<Expression, ComputeError> {
+        match expr {
+            Expression::BinaryOp { op, left, right } => {
+                // 递归处理子表达式
+                let left_folded = self.apply_constant_folding(left)?;
+                let right_folded = self.apply_constant_folding(right)?;
+                
+                match op {
+                    BinaryOperator::Add => {
+                        self.fold_addition(&left_folded, &right_folded)
+                    }
+                    BinaryOperator::Subtract => {
+                        self.fold_subtraction(&left_folded, &right_folded)
+                    }
+                    BinaryOperator::Multiply => {
+                        self.fold_multiplication(&left_folded, &right_folded)
+                    }
+                    BinaryOperator::Divide => {
+                        self.fold_division(&left_folded, &right_folded)
+                    }
+                    _ => Ok(Expression::binary_op(op.clone(), left_folded, right_folded))
+                }
+            }
+            Expression::UnaryOp { op, operand } => {
+                let operand_folded = self.apply_constant_folding(operand)?;
+                Ok(Expression::unary_op(op.clone(), operand_folded))
+            }
+            Expression::Function { name, args } => {
+                let args_folded: Result<Vec<_>, _> = args.iter()
+                    .map(|arg| self.apply_constant_folding(arg))
+                    .collect();
+                Ok(Expression::function(name, args_folded?))
+            }
+            _ => Ok(expr.clone())
+        }
+    }
+    
+    /// 折叠加法运算
+    fn fold_addition(&self, left: &Expression, right: &Expression) -> Result<Expression, ComputeError> {
+        // 收集所有加法项
+        let mut all_terms = Vec::new();
+        self.collect_addition_terms(left, &mut all_terms);
+        self.collect_addition_terms(right, &mut all_terms);
+        
+        // 分离常量和非常量项
+        let (constants, non_constants) = self.separate_constants_and_terms(&all_terms);
+        
+        // 合并常量
+        let combined_constant = if constants.is_empty() {
+            None
+        } else {
+            let mut result = constants[0].clone();
+            for constant in constants.iter().skip(1) {
+                if let (Expression::Number(n1), Expression::Number(n2)) = (&result, constant) {
+                    result = Expression::Number(n1.clone() + n2.clone());
+                }
+            }
+            Some(result)
+        };
+        
+        // 构建结果
+        let mut result_terms = Vec::new();
+        
+        // 添加合并后的常量（如果不为零）
+        if let Some(constant) = combined_constant {
+            if !matches!(&constant, Expression::Number(n) if n.is_zero()) {
+                result_terms.push(constant);
+            }
+        }
+        
+        // 添加非常量项
+        result_terms.extend(non_constants);
+        
+        // 返回结果
+        if result_terms.is_empty() {
+            Ok(Expression::Number(Number::zero()))
+        } else if result_terms.len() == 1 {
+            Ok(result_terms[0].clone())
+        } else {
+            Ok(self.combine_terms(result_terms))
+        }
+    }
+    
+    /// 收集加法表达式中的所有项
+    fn collect_addition_terms(&self, expr: &Expression, terms: &mut Vec<Expression>) {
+        match expr {
+            Expression::BinaryOp { op: BinaryOperator::Add, left, right } => {
+                self.collect_addition_terms(left, terms);
+                self.collect_addition_terms(right, terms);
+            }
+            _ => {
+                terms.push(expr.clone());
+            }
+        }
+    }
+    
+    /// 分离常量和非常量项
+    fn separate_constants_and_terms(&self, terms: &[Expression]) -> (Vec<Expression>, Vec<Expression>) {
+        let mut constants = Vec::new();
+        let mut non_constants = Vec::new();
+        
+        for term in terms {
+            match term {
+                Expression::Number(_) => constants.push(term.clone()),
+                _ => non_constants.push(term.clone()),
+            }
+        }
+        
+        (constants, non_constants)
+    }
+    
+    /// 折叠减法运算
+    fn fold_subtraction(&self, left: &Expression, right: &Expression) -> Result<Expression, ComputeError> {
+        // 简单情况：数字 - 数字
+        if let (Expression::Number(n1), Expression::Number(n2)) = (left, right) {
+            return Ok(Expression::Number(n1.clone() - n2.clone()));
+        }
+        
+        Ok(Expression::subtract(left.clone(), right.clone()))
+    }
+    
+    /// 折叠乘法运算
+    fn fold_multiplication(&self, left: &Expression, right: &Expression) -> Result<Expression, ComputeError> {
+        // 简单情况：数字 * 数字
+        if let (Expression::Number(n1), Expression::Number(n2)) = (left, right) {
+            return Ok(Expression::Number(n1.clone() * n2.clone()));
+        }
+        
+        Ok(Expression::multiply(left.clone(), right.clone()))
+    }
+    
+    /// 折叠除法运算
+    fn fold_division(&self, left: &Expression, right: &Expression) -> Result<Expression, ComputeError> {
+        // 简单情况：数字 / 数字
+        if let (Expression::Number(n1), Expression::Number(n2)) = (left, right) {
+            if n2.is_zero() {
+                return Err(ComputeError::DivisionByZero);
+            }
+            return Ok(Expression::Number(n1.clone() / n2.clone()));
+        }
+        
+        Ok(Expression::divide(left.clone(), right.clone()))
     }
     
     /// 提取减法形式 a - b
