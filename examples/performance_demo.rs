@@ -7,7 +7,7 @@ use std::time::{Duration, Instant};
 use std::collections::HashMap;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    println!("⚡ Yufmath 性能测试示例");
+    println!("Yufmath 性能测试示例");
     println!("=====================");
     
     // 1. 基础性能测试
@@ -33,7 +33,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 /// 基础性能测试
 fn basic_performance_test() -> Result<(), Box<dyn std::error::Error>> {
-    println!("\n📊 1. 基础性能测试");
+    println!("\n1. 基础性能测试");
     println!("----------------");
     
     let yuf = Yufmath::new();
@@ -73,7 +73,7 @@ fn basic_performance_test() -> Result<(), Box<dyn std::error::Error>> {
 
 /// 精度 vs 性能权衡测试
 fn precision_vs_performance_test() -> Result<(), Box<dyn std::error::Error>> {
-    println!("\n🎯 2. 精度 vs 性能权衡");
+    println!("\n2. 精度 vs 性能权衡");
     println!("--------------------");
     
     let test_expr = "2^1000 + 3^500";
@@ -162,7 +162,7 @@ fn batch_processing_test() -> Result<(), Box<dyn std::error::Error>> {
 
 /// 缓存效果测试
 fn cache_performance_test() -> Result<(), Box<dyn std::error::Error>> {
-    println!("\n🗄️ 4. 缓存效果测试");
+    println!("\n4. 缓存效果测试");
     println!("----------------");
     
     let yuf = Yufmath::new();
@@ -216,7 +216,7 @@ fn cache_performance_test() -> Result<(), Box<dyn std::error::Error>> {
 
 /// 内存使用分析
 fn memory_usage_test() -> Result<(), Box<dyn std::error::Error>> {
-    println!("\n💾 5. 内存使用分析");
+    println!("\n5. 内存使用分析");
     println!("----------------");
     
     let mut yuf = Yufmath::new();

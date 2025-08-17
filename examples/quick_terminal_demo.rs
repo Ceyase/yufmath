@@ -9,7 +9,7 @@ use num_rational::BigRational;
 use colored::*;
 
 fn main() {
-    println!("{}", "🚀 Yufmath 终端交互模式演示".bright_cyan().bold());
+    println!("{}", "Yufmath 终端交互模式演示".bright_cyan().bold());
     println!("{}", "═".repeat(50).bright_black());
     
     let mut formatter = TerminalFormatter::new();
@@ -24,7 +24,7 @@ fn main() {
         ("常量", create_constant_expr()),
     ];
     
-    println!("\n{}", "✨ 彩色输出 + 数值近似值演示:".bright_yellow().bold());
+    println!("\n{}", "彩色输出 + 数值近似值演示:".bright_yellow().bold());
     for (name, expr) in &examples {
         println!("  {}: {}", 
             name.bright_white().bold(), 
@@ -32,7 +32,7 @@ fn main() {
     }
     
     // 演示颜色开关
-    println!("\n{}", "🎨 颜色开关对比:".bright_yellow().bold());
+    println!("\n{}", "颜色开关对比:".bright_yellow().bold());
     let demo_expr = &examples[3].1; // 使用复合表达式
     
     formatter.set_colors_enabled(true);
@@ -62,7 +62,7 @@ fn main() {
     
     // 演示精度控制
     formatter.set_approximations_enabled(true);
-    println!("\n{}", "⚙️ 精度控制演示:".bright_yellow().bold());
+    println!("\n{}", "精度控制演示:".bright_yellow().bold());
     let pi_expr = &examples[5].1; // 使用常量表达式
     
     for precision in [2, 4, 8] {
@@ -72,7 +72,7 @@ fn main() {
             formatter.format(pi_expr));
     }
     
-    println!("\n{}", "🎯 使用提示:".bright_yellow().bold());
+    println!("\n{}", "使用提示:".bright_yellow().bold());
     println!("  • 运行 {} 启动交互模式", "cargo run --bin yufmath interactive".green());
     println!("  • 在交互模式中输入 {} 查看所有命令", "help".green());
     println!("  • 使用 {} 切换颜色输出", "colors".green());

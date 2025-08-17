@@ -187,13 +187,13 @@ fn test_error_report_generation() {
     let input = "2 + * 3";
     let report = error.format_error_report(Some(input));
     
-    assert!(report.contains("🚫"));
+    assert!(report.contains("错误:"));
     assert!(report.contains("输入："));
     assert!(report.contains("位置："));
     assert!(report.contains("^"));
     assert!(report.contains("严重程度"));
-    assert!(report.contains("💡 建议解决方案"));
-    assert!(report.contains("✅"));
+    assert!(report.contains("建议解决方案"));
+    assert!(report.contains("此错误可以修复"));
 }
 
 /// 测试错误报告不包含输入时的情况
@@ -203,10 +203,10 @@ fn test_error_report_without_input() {
     let error = YufmathError::Compute(compute_error);
     let report = error.format_error_report(None);
     
-    assert!(report.contains("🚫"));
-    assert!(report.contains("🔥")); // 高严重程度图标
-    assert!(report.contains("💡 建议解决方案"));
-    assert!(report.contains("❌")); // 不可恢复
+    assert!(report.contains("错误:"));
+    assert!(report.contains("严重程度"));
+    assert!(report.contains("建议解决方案"));
+    assert!(report.contains("此错误无法自动恢复"));
 }
 
 /// 测试编辑距离算法（用于函数名建议）

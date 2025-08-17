@@ -9,7 +9,7 @@ use num_rational::BigRational;
 use colored::*;
 
 fn main() {
-    println!("{}", "🎨 Yufmath 终端格式化演示".bright_cyan().bold());
+    println!("{}", "Yufmath 终端格式化演示".bright_cyan().bold());
     println!("{}", "━".repeat(40).bright_black());
     
     let mut formatter = TerminalFormatter::new();
@@ -18,11 +18,11 @@ fn main() {
     formatter.set_approximation_precision(6);
     
     // 演示数字格式化
-    println!("\n{}", "📊 数字格式化:".bright_yellow().bold());
+    println!("\n{}", "数字格式化:".bright_yellow().bold());
     demo_numbers(&formatter);
     
     // 演示常量格式化
-    println!("\n{}", "🔢 数学常量:".bright_yellow().bold());
+    println!("\n{}", "数学常量:".bright_yellow().bold());
     demo_constants(&formatter);
     
     // 演示表达式格式化
@@ -34,7 +34,7 @@ fn main() {
     demo_functions(&formatter);
     
     // 演示颜色开关
-    println!("\n{}", "🎨 颜色开关演示:".bright_yellow().bold());
+    println!("\n{}", "颜色开关演示:".bright_yellow().bold());
     demo_color_toggle(&mut formatter);
     
     // 演示近似值开关

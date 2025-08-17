@@ -8,7 +8,7 @@ use yufmath::parser::ParseError;
 use yufmath::engine::ComputeError;
 
 fn main() {
-    println!("🔧 Yufmath 错误处理系统演示\n");
+    println!("Yufmath 错误处理系统演示\n");
     
     // 演示解析错误
     demonstrate_parse_errors();
@@ -85,7 +85,7 @@ fn demonstrate_compute_errors() {
 
 /// 演示格式化错误的处理
 fn demonstrate_format_errors() {
-    println!("🎨 格式化错误演示");
+    println!("格式化错误演示");
     println!("{}", "=".repeat(50));
     
     // 不支持的格式错误
@@ -142,9 +142,9 @@ fn demonstrate_error_recovery() {
         println!("  可恢复: {}", error.is_recoverable());
         
         if error.is_recoverable() {
-            println!("  🔧 恢复策略: 根据建议修复后重试");
+            println!("  恢复策略: 根据建议修复后重试");
         } else {
-            println!("  ⚠️  恢复策略: 需要程序重启或技术支持");
+            println!("  恢复策略: 需要程序重启或技术支持");
         }
         println!();
     }

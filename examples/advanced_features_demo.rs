@@ -15,7 +15,7 @@ use std::time::Duration;
 use std::thread;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    println!("🚀 Yufmath 高级功能演示");
+    println!("Yufmath 高级功能演示");
     println!("======================");
     
     // 1. 高级配置系统演示
@@ -38,7 +38,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 /// 高级配置系统演示
 fn advanced_configuration_demo() -> Result<(), Box<dyn std::error::Error>> {
-    println!("\n⚙️ 1. 高级配置系统演示");
+    println!("\n1. 高级配置系统演示");
     println!("--------------------");
     
     // 创建精度配置
@@ -119,7 +119,7 @@ fn advanced_configuration_demo() -> Result<(), Box<dyn std::error::Error>> {
 
 /// 性能监控演示
 fn performance_monitoring_demo() -> Result<(), Box<dyn std::error::Error>> {
-    println!("\n📊 2. 性能监控演示");
+    println!("\n2. 性能监控演示");
     println!("----------------");
     
     let mut yuf = Yufmath::new();
@@ -234,7 +234,7 @@ fn async_computation_demo() -> Result<(), Box<dyn std::error::Error>> {
 
 /// 内存管理演示
 fn memory_management_demo() -> Result<(), Box<dyn std::error::Error>> {
-    println!("\n💾 4. 内存管理演示");
+    println!("\n4. 内存管理演示");
     println!("----------------");
     
     // 创建带内存管理的配置
@@ -292,7 +292,7 @@ fn memory_management_demo() -> Result<(), Box<dyn std::error::Error>> {
 
 /// 缓存优化演示
 fn cache_optimization_demo() -> Result<(), Box<dyn std::error::Error>> {
-    println!("\n🗄️ 5. 缓存优化演示");
+    println!("\n5. 缓存优化演示");
     println!("----------------");
     
     // 创建带缓存优化的配置
@@ -363,7 +363,7 @@ fn cache_optimization_demo() -> Result<(), Box<dyn std::error::Error>> {
 /// 演示批量异步计算器的高级用法
 #[allow(dead_code)]
 fn advanced_async_demo() -> Result<(), Box<dyn std::error::Error>> {
-    println!("\n🚀 6. 高级异步计算演示");
+    println!("\n6. 高级异步计算演示");
     println!("--------------------");
     
     // 创建自定义的批量异步计算器

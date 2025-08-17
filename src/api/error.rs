@@ -159,7 +159,7 @@ impl YufmathError {
         let mut report = String::new();
         
         // 错误标题
-        report.push_str(&format!("🚫 {}\n", self.user_friendly_message()));
+        report.push_str(&format!("错误: {}\n", self.user_friendly_message()));
         
         // 如果是解析错误且有输入，显示位置信息
         if let (YufmathError::Parse(parse_error), Some(input_str)) = (self, input) {
@@ -172,17 +172,12 @@ impl YufmathError {
         }
         
         // 严重程度指示
-        let severity_icon = match self.severity() {
-            ErrorSeverity::Low => "⚠️",
-            ErrorSeverity::Medium => "❗",
-            ErrorSeverity::High => "🔥",
-        };
-        report.push_str(&format!("\n{} 严重程度：{:?}\n", severity_icon, self.severity()));
+        report.push_str(&format!("\n严重程度：{:?}\n", self.severity()));
         
         // 修复建议
         let suggestions = self.suggestions();
         if !suggestions.is_empty() {
-            report.push_str("\n💡 建议解决方案：\n");
+            report.push_str("\n建议解决方案：\n");
             for (i, suggestion) in suggestions.iter().enumerate() {
                 report.push_str(&format!("  {}. {}\n", i + 1, suggestion));
             }
@@ -190,9 +185,9 @@ impl YufmathError {
         
         // 恢复信息
         if self.is_recoverable() {
-            report.push_str("\n✅ 此错误可以修复，请根据建议进行调整后重试\n");
+            report.push_str("\n此错误可以修复，请根据建议进行调整后重试\n");
         } else {
-            report.push_str("\n❌ 此错误无法自动恢复，可能需要程序重启或联系技术支持\n");
+            report.push_str("\n此错误无法自动恢复，可能需要程序重启或联系技术支持\n");
         }
         
         report

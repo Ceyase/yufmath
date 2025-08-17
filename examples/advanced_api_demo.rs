@@ -10,7 +10,7 @@ use std::sync::{Arc, Mutex};
 use std::thread;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    println!("🚀 Yufmath 高级 API 使用示例");
+    println!("Yufmath 高级 API 使用示例");
     println!("==========================");
     
     // 1. 高精度计算示例
@@ -39,7 +39,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 /// 高精度计算示例
 fn high_precision_demo() -> Result<(), Box<dyn std::error::Error>> {
-    println!("\n🔢 1. 高精度计算");
+    println!("\n1. 高精度计算");
     println!("---------------");
     
     // 配置高精度计算
@@ -120,7 +120,7 @@ fn complex_expression_demo() -> Result<(), Box<dyn std::error::Error>> {
 
 /// 自定义进度监控示例
 fn custom_progress_demo() -> Result<(), Box<dyn std::error::Error>> {
-    println!("\n📊 3. 自定义进度监控");
+    println!("\n3. 自定义进度监控");
     println!("------------------");
     
     let mut yuf = Yufmath::new();
@@ -174,7 +174,7 @@ fn custom_progress_demo() -> Result<(), Box<dyn std::error::Error>> {
 
 /// 性能优化技巧示例
 fn performance_optimization_demo() -> Result<(), Box<dyn std::error::Error>> {
-    println!("\n⚡ 4. 性能优化技巧");
+    println!("\n4. 性能优化技巧");
     println!("----------------");
     
     let mut yuf = Yufmath::new();
@@ -313,20 +313,20 @@ fn error_recovery_demo() -> Result<(), Box<dyn std::error::Error>> {
         
         match yuf.compute(expr) {
             Ok(result) => {
-                println!("✅ 成功 -> {}", result);
+                println!("成功 -> {}", result);
                 successful_count += 1;
             }
             Err(e) => {
                 if e.is_recoverable() {
-                    println!("⚠️  可恢复错误 -> {}", e.user_friendly_message());
+                    println!("可恢复错误 -> {}", e.user_friendly_message());
                     recoverable_errors += 1;
                     
                     // 显示修复建议
                     for suggestion in e.suggestions() {
-                        println!("    💡 建议: {}", suggestion);
+                        println!("    建议: {}", suggestion);
                     }
                 } else {
-                    println!("❌ 严重错误 -> {}", e.user_friendly_message());
+                    println!("严重错误 -> {}", e.user_friendly_message());
                     fatal_errors += 1;
                 }
             }
@@ -345,7 +345,7 @@ fn error_recovery_demo() -> Result<(), Box<dyn std::error::Error>> {
 
 /// 内存管理示例
 fn memory_management_demo() -> Result<(), Box<dyn std::error::Error>> {
-    println!("\n💾 7. 内存管理");
+    println!("\n7. 内存管理");
     println!("-------------");
     
     let mut yuf = Yufmath::new();

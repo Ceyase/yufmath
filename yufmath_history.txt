@@ -53,3 +53,20 @@ quit
 sqrt(9)
 sin(pi/2)
 quit
+help
+3+3
+x^2 + 2*x + 1
+sqrt(16)
+sin(pi/2)
+colors
+approx
+vars
+quit
+1
+1+1
+sqrt(4)
+sqrt(3)
+sqrt(3)+1
+format latex
+sqrt(3)+1
+exit

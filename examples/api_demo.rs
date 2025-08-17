@@ -34,7 +34,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 /// 基本使用示例
 fn basic_usage_demo() -> Result<(), Box<dyn std::error::Error>> {
-    println!("\n📚 1. 基本使用");
+    println!("\n1. 基本使用");
     println!("-------------");
     
     // 创建 Yufmath 实例
@@ -69,7 +69,7 @@ fn basic_usage_demo() -> Result<(), Box<dyn std::error::Error>> {
 
 /// 配置使用示例
 fn config_demo() -> Result<(), Box<dyn std::error::Error>> {
-    println!("\n⚙️ 2. 配置使用");
+    println!("\n2. 配置使用");
     println!("-------------");
     
     // 创建自定义配置
@@ -109,7 +109,7 @@ fn config_demo() -> Result<(), Box<dyn std::error::Error>> {
 
 /// 进度监控示例
 fn progress_demo() -> Result<(), Box<dyn std::error::Error>> {
-    println!("\n📊 3. 进度监控");
+    println!("\n3. 进度监控");
     println!("-------------");
     
     let mut yuf = Yufmath::new();
@@ -221,7 +221,7 @@ fn advanced_math_demo() -> Result<(), Box<dyn std::error::Error>> {
 
 /// 性能统计示例
 fn performance_demo() -> Result<(), Box<dyn std::error::Error>> {
-    println!("\n📈 6. 性能统计");
+    println!("\n6. 性能统计");
     println!("-------------");
     
     let mut yuf = Yufmath::new();
@@ -243,13 +243,13 @@ fn performance_demo() -> Result<(), Box<dyn std::error::Error>> {
     // 获取并显示性能统计
     if let Some(stats) = yuf.get_performance_stats() {
         println!("\n性能统计报告:");
-        println!("  📊 总计算次数: {}", stats.total_computations);
-        println!("  ✅ 成功计算次数: {}", stats.successful_computations);
-        println!("  ❌ 失败计算次数: {}", stats.failed_computations());
-        println!("  🎯 成功率: {:.2}%", stats.success_rate() * 100.0);
-        println!("  ⏱️  平均计算时间: {:?}", stats.avg_compute_time);
-        println!("  🔢 精确计算比例: {:.2}%", stats.exact_computation_ratio * 100.0);
-        println!("  💾 内存使用量: {} 字节", stats.memory_usage);
+        println!("  总计算次数: {}", stats.total_computations);
+        println!("  成功计算次数: {}", stats.successful_computations);
+        println!("  失败计算次数: {}", stats.failed_computations());
+        println!("  成功率: {:.2}%", stats.success_rate() * 100.0);
+        println!("  平均计算时间: {:?}", stats.avg_compute_time);
+        println!("  精确计算比例: {:.2}%", stats.exact_computation_ratio * 100.0);
+        println!("  内存使用量: {} 字节", stats.memory_usage);
         
         if let Some(ref progress) = stats.last_progress {
             println!("  📋 最后进度: {} ({:.1}%)", 
@@ -300,7 +300,7 @@ fn error_handling_demo() -> Result<(), Box<dyn std::error::Error>> {
 /// 数值计算示例
 #[allow(dead_code)]
 fn numerical_demo() -> Result<(), Box<dyn std::error::Error>> {
-    println!("\n🔢 8. 数值计算");
+    println!("\n8. 数值计算");
     println!("-------------");
     
     let yuf = Yufmath::new();

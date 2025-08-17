@@ -327,8 +327,7 @@ pub fn run_interactive() -> Result<(), Box<dyn std::error::Error>> {
         format!("v{}", crate::VERSION).bright_green(),
         "计算机代数系统".bright_white());
     println!("{}", "━".repeat(50).bright_black());
-    println!("✨ {} - 支持彩色输出和数值近似值", "增强终端模式".bright_yellow());
-    println!("📚 输入 {} 查看帮助，输入 {} 退出", "'help'".green(), "'quit'".red());
+    println!("输入 {} 查看帮助，输入 {} 退出", "'help'".green(), "'quit'".red());
     println!();
     
     let mut rl = DefaultEditor::new()?;
@@ -363,7 +362,7 @@ pub fn run_interactive() -> Result<(), Box<dyn std::error::Error>> {
                 if input.trim().to_lowercase() == "quit" 
                     || input.trim().to_lowercase() == "exit" 
                     || input.trim().to_lowercase() == "q" {
-                    println!("{} {}", "👋".bright_yellow(), "再见！".bright_cyan());
+                    println!("{}", "再见！".bright_cyan());
                     break;
                 }
                 
@@ -375,7 +374,7 @@ pub fn run_interactive() -> Result<(), Box<dyn std::error::Error>> {
                         }
                     }
                     Err(e) => {
-                        eprintln!("{} {}", "❌ 错误:".bright_red(), e.to_string().red());
+                        eprintln!("{} {}", "错误:".bright_red(), e.to_string().red());
                     }
                 }
             }
@@ -388,7 +387,7 @@ pub fn run_interactive() -> Result<(), Box<dyn std::error::Error>> {
                 break;
             }
             Err(err) => {
-                eprintln!("{} {:?}", "❌ 错误:".bright_red(), err);
+                eprintln!("{} {:?}", "错误:".bright_red(), err);
                 break;
             }
         }
