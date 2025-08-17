@@ -51,6 +51,16 @@ yufmath/
 │   │   ├── mod.rs
 │   │   ├── cell.rs         # 单元格数据结构
 │   │   ├── notebook.rs     # 笔记本管理器
+│   │   ├── execution.rs    # 执行引擎（增强版）
+│   │   ├── scope.rs        # 变量作用域管理
+│   │   ├── format.rs       # 笔记本文件格式
+│   │   ├── ui.rs           # 用户界面
+│   │   ├── gui.rs          # 图形界面
+│   │   ├── autocomplete.rs # 自动补全
+│   │   └── export.rs       # 导出功能
+│   │   ├── mod.rs
+│   │   ├── cell.rs         # 单元格数据结构
+│   │   ├── notebook.rs     # 笔记本管理器
 │   │   ├── execution.rs    # 单元格执行引擎
 │   │   ├── scope.rs        # 变量作用域管理
 │   │   ├── format.rs       # 文件格式处理
@@ -651,11 +661,82 @@ pub enum NotebookError {
 }
 ```
 
-#### 4. 性能优化
+#### 4. 执行引擎 (`execution.rs`)
+
+**核心功能**:
+- **单元格执行队列和调度器**: 管理单元格的执行顺序和依赖关系
+- **增量执行**: 只执行修改过的单元格及其依赖
+- **异步执行**: 支持后台执行和进度显示
+- **结果缓存**: 缓存执行结果以提高性能
+- **错误处理和恢复**: 完善的错误处理和恢复机制
+
+**主要组件**:
+
+```rust
+// 执行引擎配置
+pub struct ExecutionEngineConfig {
+    pub max_concurrent: usize,        // 最大并发执行数
+    pub enable_cache: bool,           // 是否启用缓存
+    pub cache_file: Option<String>,   // 缓存文件路径
+    pub cache_max_size: usize,        // 缓存最大大小
+    pub cache_max_age: Duration,      // 缓存过期时间
+    pub enable_progress: bool,        // 是否启用进度报告
+    pub execution_timeout: Option<Duration>, // 执行超时时间
+    pub max_retries: u32,            // 最大重试次数
+}
+
+// 执行任务
+pub struct ExecutionTask {
+    pub id: Uuid,                    // 任务 ID
+    pub cell_id: CellId,            // 单元格 ID
+    pub status: TaskStatus,          // 任务状态
+    pub retry_count: u32,           // 重试次数
+    pub result: Option<ExecutionResult>, // 执行结果
+}
+
+// 依赖图
+pub struct DependencyGraph {
+    nodes: HashMap<CellId, DependencyNode>, // 节点映射
+    topo_cache: Option<Vec<CellId>>,        // 拓扑排序缓存
+}
+```
+
+**执行流程**:
+1. **依赖分析**: 分析单元格间的变量依赖关系
+2. **拓扑排序**: 按依赖关系确定执行顺序
+3. **增量执行**: 只执行修改过的单元格及其依赖
+4. **并行调度**: 在满足依赖关系的前提下并行执行
+5. **结果缓存**: 缓存执行结果避免重复计算
+6. **错误恢复**: 处理执行错误并尝试恢复
+
+**缓存机制**:
+```rust
+pub struct ExecutionCache {
+    results: HashMap<CellId, CachedResult>, // 缓存的结果
+    cache_file: Option<String>,             // 持久化文件
+    max_size: usize,                        // 最大缓存大小
+}
+
+pub struct CachedResult {
+    content_hash: u64,              // 内容哈希值
+    result: ExecutionResult,        // 执行结果
+    cached_at: SystemTime,          // 缓存时间
+    access_count: u64,              // 访问次数
+}
+```
+
+**进度监控**:
+- 实时进度报告和预估剩余时间
+- 支持用户取消长时间运行的计算
+- 内存使用和缓存命中率统计
+- 详细的执行统计信息
+
+#### 5. 性能优化
 - 惰性求值和缓存机制
 - 依赖关系分析避免重复计算
-- 并行执行支持
-- 内存管理优化
+- 并行执行支持（最多4个并发任务）
+- 内存管理优化（LRU 缓存策略）
+- 智能重试机制（最多3次重试）
 
 ### 使用示例
 

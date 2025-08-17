@@ -2,9 +2,11 @@
 
 [![Crates.io](https://img.shields.io/crates/v/yufmath.svg)](https://crates.io/crates/yufmath)
 [![Documentation](https://docs.rs/yufmath/badge.svg)](https://docs.rs/yufmath)
-[![License](https://img.shields.io/badge/license-MIT%2FApache--2.0-blue.svg)](LICENSE)
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 Yufmath 是一个基于 Rust 编写的高性能计算机代数系统（CAS）库，提供符号数学计算、精确算术运算和多种接口支持。
+
+> 本项目由 Kiro 提供部分支持
 
 ## 主要特性
 
@@ -164,8 +166,8 @@ Yufmath 目前处于积极开发阶段。已完成的功能：
 - 项目基础架构
 - 基础数值系统（开发中）
 - 表达式解析器（计划中）
-- ⏳ 计算引擎（计划中）
-- ⏳ 命令行工具（计划中）
+- 计算引擎（计划中）
+- 命令行工具（计划中）
 
 ## 贡献
 
@@ -173,7 +175,7 @@ Yufmath 目前处于积极开发阶段。已完成的功能：
 
 ## 许可证
 
-本项目采用 MIT 或 Apache-2.0 双重许可证。详情请查看 [LICENSE-MIT](LICENSE-MIT) 和 [LICENSE-APACHE](LICENSE-APACHE) 文件。
+本项目采用 MIT 许可证。详情请查看 [LICENSE](LICENSE) 文件。
 
 ## 相关项目
 
@@ -183,6 +185,6 @@ Yufmath 目前处于积极开发阶段。已完成的功能：
 
 ## 联系方式
 
-- 项目主页：https://github.com/your-username/yufmath
+- 项目主页：https://github.com/Ceyase/yufmath
 - 文档：https://docs.rs/yufmath
-- 问题反馈：https://github.com/your-username/yufmath/issues
+- 问题反馈：https://github.com/Ceyase/yufmath/issues

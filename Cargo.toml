@@ -2,9 +2,9 @@
 name = "yufmath"
 version = "0.1.0"
 edition = "2021"
-description = "一个基于 Rust 的高性能计算机代数系统（CAS）库"
+description = "A Rust CAS Lib."
 license = "MIT"
-repository = "https://github.com/your-username/yufmath"
+repository = "https://github.com/Ceyase/yufmath"
 keywords = ["math", "algebra", "cas", "symbolic", "computation"]
 categories = ["mathematics", "science"]
 
@@ -43,7 +43,11 @@ rayon = "1.8"
 
 # 序列化支持
 serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
 toml = "0.8"
+
+# 异步运行时支持
+tokio = { version = "1.0", features = ["full"] }
 
 # UUID 支持
 uuid = { version = "1.0", features = ["v4", "serde"] }
