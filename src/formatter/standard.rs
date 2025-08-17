@@ -247,9 +247,8 @@ impl StandardFormatter {
             (Expression::Variable(_), Expression::Function { .. }) => true,
             // 函数 * 变量：sin(x)*y -> sin(x)y
             (Expression::Function { .. }, Expression::Variable(_)) => true,
-            // 括号表达式
-            (_, Expression::BinaryOp { .. }) => true,
-            (Expression::BinaryOp { .. }, _) => true,
+            // 对于复杂表达式，保持明确的乘法符号以避免歧义
+            // 例如：(x/2)*x 不应该变成 x/2x
             _ => false,
         }
     }
