@@ -48,6 +48,9 @@ toml = "0.8"
 # UUID 支持
 uuid = { version = "1.0", features = ["v4", "serde"] }
 
+# GUI 支持
+fltk = { version = "1.4", features = ["fltk-bundled"] }
+
 [dev-dependencies]
 # 性能基准测试
 criterion = { version = "0.5", features = ["html_reports"] }
@@ -89,3 +92,7 @@ path = "examples/quick_terminal_demo.rs"
 [[example]]
 name = "terminal_color_test"
 path = "examples/terminal_color_test.rs"
+
+[[example]]
+name = "notebook_gui_demo"
+path = "examples/notebook_gui_demo.rs"

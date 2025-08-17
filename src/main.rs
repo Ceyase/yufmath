@@ -82,7 +82,7 @@ fn main() {
         Some(Commands::Interactive) => {
             handle_interactive(&args)
         }
-        Some(Commands::Notepad { file, title }) => {
+        Some(Commands::Notepad { file, title , gui}) => {
             handle_notepad(file.as_deref(), title.as_deref(), &args)
         }
         None => {

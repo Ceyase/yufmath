@@ -10,8 +10,8 @@ use std::path::Path;
 /// 运行命令行命令
 pub fn run_command(args: CliArgs) -> Result<(), Box<dyn std::error::Error>> {
     match args.command {
-        Some(Commands::Notepad { file, title }) => {
-            run_notepad_command(file, title)?;
+        Some(Commands::Notepad { file, title, gui }) => {
+            run_notepad_command(file, title, gui)?;
         }
         Some(Commands::Interactive) => {
             crate::cli::run_interactive()?;
@@ -94,7 +94,7 @@ pub fn run_command(args: CliArgs) -> Result<(), Box<dyn std::error::Error>> {
 }
 
 /// 运行笔记本命令
-fn run_notepad_command(file: Option<String>, title: Option<String>) -> Result<(), Box<dyn std::error::Error>> {
+fn run_notepad_command(file: Option<String>, title: Option<String>, gui: bool) -> Result<(), Box<dyn std::error::Error>> {
     let notebook = if let Some(file_path) = file {
         let path = Path::new(&file_path);
         
@@ -126,8 +126,16 @@ fn run_notepad_command(file: Option<String>, title: Option<String>) -> Result<()
     };
     
     // 启动笔记本界面
-    let mut ui = NotebookUI::with_notebook(notebook);
-    ui.run()?;
+    if gui {
+        // 使用图形界面
+        let mut gui_ui = crate::notebook::NotebookGUI::new();
+        gui_ui.set_notebook(notebook)?;
+        gui_ui.run()?;
+    } else {
+        // 使用终端界面
+        let mut ui = NotebookUI::with_notebook(notebook);
+        ui.run()?;
+    }
     
     Ok(())
 }

@@ -16,10 +16,15 @@ pub mod execution;
 pub mod scope;
 pub mod format;
 pub mod ui;
+pub mod gui;
+pub mod autocomplete;
 pub mod export;
 
 #[cfg(test)]
 mod tests;
+
+#[cfg(test)]
+mod gui_tests;
 
 pub use cell::{NotebookCell, CellType, CellContent, CellMetadata, CellId};
 pub use notebook::{Notebook, NotebookManager, NotebookMetadata};
@@ -27,6 +32,8 @@ pub use execution::{ExecutionEngine, ExecutionResult, ExecutionContext, Executio
 pub use scope::{VariableScope, ScopeManager, VariableBinding};
 pub use format::{NotebookFormat, NotebookSerializer, NotebookDeserializer};
 pub use ui::{NotebookUI, UIEvent, UICommand, KeyBinding};
+pub use gui::{NotebookGUI, CellEditor};
+pub use autocomplete::{AutoCompleteEngine, CompletionSuggestion, SuggestionType};
 pub use export::{NotebookExporter, ExportFormat, ExportOptions};
 
 use crate::core::Expression;

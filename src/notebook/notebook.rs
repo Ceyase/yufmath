@@ -189,6 +189,11 @@ impl Notebook {
         self.cells.get_mut(index)
     }
     
+    /// 获取所有单元格
+    pub fn get_cells(&self) -> &[NotebookCell] {
+        &self.cells
+    }
+    
     /// 移动单元格位置
     pub fn move_cell(&mut self, from: usize, to: usize) -> NotebookResult<()> {
         if from >= self.cells.len() || to >= self.cells.len() {

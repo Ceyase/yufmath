@@ -48,6 +48,16 @@ yufmath/
 │   │   ├── progress.rs     # 进度条支持
 │   │   └── terminal.rs     # 终端初始化和颜色支持
 │   ├── notebook/           # 笔记本模式
+│   │   ├── mod.rs
+│   │   ├── cell.rs         # 单元格数据结构
+│   │   ├── notebook.rs     # 笔记本管理器
+│   │   ├── execution.rs    # 单元格执行引擎
+│   │   ├── scope.rs        # 变量作用域管理
+│   │   ├── format.rs       # 文件格式处理
+│   │   ├── ui.rs           # 终端用户界面
+│   │   ├── gui.rs          # 图形用户界面（FLTK）
+│   │   ├── autocomplete.rs # 自动补全引擎
+│   │   └── export.rs       # 导出功能
 │   │   ├── mod.rs          # 模块入口
 │   │   ├── cell.rs         # 单元格数据结构
 │   │   ├── notebook.rs     # 笔记本管理器
@@ -133,7 +143,22 @@ yufmath/
   - 交互式终端检测
 - **进度显示**: 长时间计算的进度条支持
 
-### 7. FFI 接口 (ffi/)
+### 7. 笔记本模式 (notebook/)
+
+- **NotebookCell**: 单元格数据结构，支持代码、文档、文本、输出类型
+- **Notebook**: 笔记本管理器，处理单元格集合和元数据
+- **ExecutionEngine**: 单元格执行引擎，支持代码执行和结果缓存
+- **VariableScope**: 变量作用域管理，支持单元格间变量共享
+- **NotebookFormat**: 文件格式处理，支持 .ynb 格式的序列化和反序列化
+- **NotebookUI**: 终端用户界面，提供基于文本的交互
+- **NotebookGUI**: 图形用户界面，基于 FLTK 实现：
+  - **CellEditor**: 单元格编辑器组件，支持语法高亮
+  - **AutoCompleteEngine**: 智能自动补全，支持函数、常量、变量
+  - **快捷键系统**: 完整的键盘快捷键支持
+  - **菜单和工具栏**: 直观的图形界面操作
+- **NotebookExporter**: 导出功能，支持 HTML、PDF、Markdown 格式
+
+### 8. FFI 接口 (ffi/)
 
 - **C API**: C 兼容的接口层
 - **类型转换**: Rust 和 C 类型之间的转换
@@ -238,6 +263,17 @@ yufmath/
   - [x] 实现 ENABLE_VIRTUAL_TERMINAL_PROCESSING 设置
   - [x] 创建跨平台终端初始化模块
   - [x] 添加智能颜色支持检测
+- [x] 笔记本图形用户界面（任务 16.3）
+  - [x] 基于 FLTK 的图形界面实现
+  - [x] 单元格编辑器组件（支持代码、文档、文本类型）
+  - [x] 语法高亮和自动补全功能
+  - [x] 快捷键支持（Ctrl+Enter 执行、Shift+Enter 执行并新建等）
+  - [x] 菜单栏和工具栏界面
+  - [x] 文件操作（新建、打开、保存、另存为）
+  - [x] 单元格管理（创建、删除、移动、类型转换）
+  - [x] 执行引擎集成和结果显示
+  - [x] 自动补全引擎（函数、常量、变量、关键字）
+  - [x] 完整的测试覆盖
   - [x] 实现环境变量配置支持（NO_COLOR、FORCE_COLOR）
   - [x] 修复 Windows 系统上的 ANSI 颜色输出问题
   - [x] 添加终端颜色支持测试工具

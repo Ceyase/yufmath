@@ -126,6 +126,9 @@ pub enum Commands {
         /// 笔记本标题（创建新笔记本时使用）
         #[arg(short, long)]
         title: Option<String>,
+        /// 使用图形界面模式
+        #[arg(long)]
+        gui: bool,
     },
 }
 
