@@ -133,6 +133,15 @@ impl Yufmath {
         }
     }
     
+    /// 格式化表达式为字符串
+    pub fn format(&self, expr: &Expression) -> String {
+        if let Ok(formatter) = self.formatter.lock() {
+            formatter.format(expr)
+        } else {
+            format!("{:?}", expr) // 如果无法获取格式化器，使用调试格式
+        }
+    }
+    
     /// 设置是否启用增强化简功能
     pub fn set_enhanced_simplify(&mut self, enabled: bool) {
         if let Some(enhanced_engine) = self.engine.as_any().downcast_ref::<EnhancedComputeEngine>() {

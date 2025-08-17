@@ -119,6 +119,14 @@ pub enum Commands {
     },
     /// 启动交互模式
     Interactive,
+    /// 启动笔记本模式
+    Notepad {
+        /// 笔记本文件路径（可选，如果不提供则创建新笔记本）
+        file: Option<String>,
+        /// 笔记本标题（创建新笔记本时使用）
+        #[arg(short, long)]
+        title: Option<String>,
+    },
 }
 
 /// 输出格式

@@ -47,6 +47,15 @@ yufmath/
 │   │   ├── interactive.rs  # 交互模式
 │   │   ├── progress.rs     # 进度条支持
 │   │   └── terminal.rs     # 终端初始化和颜色支持
+│   ├── notebook/           # 笔记本模式
+│   │   ├── mod.rs          # 模块入口
+│   │   ├── cell.rs         # 单元格数据结构
+│   │   ├── notebook.rs     # 笔记本管理器
+│   │   ├── format.rs       # 文件格式处理
+│   │   ├── execution.rs    # 执行引擎
+│   │   ├── scope.rs        # 变量作用域
+│   │   ├── ui.rs           # 用户界面
+│   │   └── export.rs       # 导出功能
 │   ├── ffi/                # 外部函数接口
 │   │   ├── mod.rs
 │   │   ├── c_api.rs        # C 接口

@@ -230,6 +230,21 @@ impl NotebookUI {
         ui
     }
     
+    /// 创建带笔记本的 UI
+    pub fn with_notebook(notebook: Notebook) -> Self {
+        let mut ui = Self::new();
+        ui.set_notebook(notebook);
+        ui
+    }
+    
+    /// 设置笔记本
+    pub fn set_notebook(&mut self, notebook: Notebook) {
+        self.notebook = Some(notebook);
+        self.current_cell = None;
+        self.edit_mode = false;
+        self.scroll_offset = 0;
+    }
+    
     /// 设置默认键盘绑定
     fn setup_default_key_bindings(&mut self) {
         self.key_bindings = vec![
@@ -317,12 +332,7 @@ impl NotebookUI {
         ];
     }
     
-    /// 设置笔记本
-    pub fn set_notebook(&mut self, notebook: Notebook) {
-        self.current_cell = if notebook.is_empty() { None } else { Some(0) };
-        self.notebook = Some(notebook);
-        self.scroll_offset = 0;
-    }
+
     
     /// 获取当前笔记本
     pub fn get_notebook(&self) -> Option<&Notebook> {
