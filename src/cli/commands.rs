@@ -10,8 +10,8 @@ use std::path::Path;
 /// 运行命令行命令
 pub fn run_command(args: CliArgs) -> Result<(), Box<dyn std::error::Error>> {
     match args.command {
-        Some(Commands::Notepad { file, title, gui }) => {
-            run_notepad_command(file, title, gui)?;
+        Some(Commands::Notepad { file, title, terminal }) => {
+            run_notepad_command(file, title, terminal)?;
         }
         Some(Commands::Interactive) => {
             crate::cli::run_interactive()?;
@@ -94,7 +94,7 @@ pub fn run_command(args: CliArgs) -> Result<(), Box<dyn std::error::Error>> {
 }
 
 /// 运行笔记本命令
-fn run_notepad_command(file: Option<String>, title: Option<String>, gui: bool) -> Result<(), Box<dyn std::error::Error>> {
+fn run_notepad_command(file: Option<String>, title: Option<String>, terminal: bool) -> Result<(), Box<dyn std::error::Error>> {
     let notebook = if let Some(file_path) = file {
         let path = Path::new(&file_path);
         
@@ -126,15 +126,43 @@ fn run_notepad_command(file: Option<String>, title: Option<String>, gui: bool) -
     };
     
     // 启动笔记本界面
-    if gui {
-        // 使用图形界面
-        let mut gui_ui = crate::notebook::NotebookGUI::new();
-        gui_ui.set_notebook(notebook)?;
-        gui_ui.run()?;
-    } else {
+    if terminal {
         // 使用终端界面
         let mut ui = NotebookUI::with_notebook(notebook);
         ui.run()?;
+    } else {
+        // 默认使用图形界面
+        println!("正在启动图形界面...");
+        
+        // 检查图形环境
+        if !has_display() {
+            eprintln!("警告：未检测到图形环境，将使用终端界面");
+            eprintln!("提示：");
+            eprintln!("  - 确保在图形桌面环境中运行");
+            eprintln!("  - 如果使用 SSH，请使用 -X 或 -Y 参数启用 X11 转发");
+            eprintln!("  - 或者使用 --terminal 参数强制使用终端界面");
+            
+            let mut ui = NotebookUI::with_notebook(notebook);
+            ui.run()?;
+        } else {
+            // 尝试启动图形界面
+            let mut gui_ui = crate::notebook::NotebookGUI::new();
+            match gui_ui.set_notebook(notebook) {
+                Ok(_) => {
+                    match gui_ui.run() {
+                        Ok(_) => {
+                            println!("图形界面已关闭");
+                        }
+                        Err(e) => {
+                            eprintln!("图形界面运行错误: {}", e);
+                        }
+                    }
+                }
+                Err(e) => {
+                    eprintln!("图形界面设置失败: {}", e);
+                }
+            }
+        }
     }
     
     Ok(())
@@ -211,4 +239,13 @@ fn format_output(result: &str, format: &OutputFormat) -> String {
             format!("<math><mrow>{}</mrow></math>", result)
         }
     }
+}
+
+/// 检查是否有图形显示环境
+fn has_display() -> bool {
+    // 检查常见的图形环境变量
+    std::env::var("DISPLAY").is_ok() || 
+    std::env::var("WAYLAND_DISPLAY").is_ok() ||
+    cfg!(target_os = "windows") ||
+    cfg!(target_os = "macos")
 }

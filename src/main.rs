@@ -82,8 +82,13 @@ fn main() {
         Some(Commands::Interactive) => {
             handle_interactive(&args)
         }
-        Some(Commands::Notepad { file, title , gui}) => {
-            handle_notepad(file.as_deref(), title.as_deref(), &args)
+        Some(Commands::Notepad { file, title, terminal }) => {
+            // 使用 CLI 模块的命令处理
+            if let Err(e) = yufmath::cli::run_command(args) {
+                eprintln!("错误: {}", e);
+                process::exit(1);
+            }
+            return;
         }
         None => {
             // 如果没有指定子命令，显示帮助信息

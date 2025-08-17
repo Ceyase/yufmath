@@ -96,3 +96,7 @@ path = "examples/terminal_color_test.rs"
 [[example]]
 name = "notebook_gui_demo"
 path = "examples/notebook_gui_demo.rs"
+
+[[example]]
+name = "simple_gui_test"
+path = "examples/simple_gui_test.rs"

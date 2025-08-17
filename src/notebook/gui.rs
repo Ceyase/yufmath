@@ -183,7 +183,7 @@ impl CellEditor {
     
     /// 聚焦到编辑器
     pub fn focus(&mut self) {
-        self.editor.take_focus();
+        let _ = self.editor.take_focus();
     }
     
     /// 获取编辑器组件
@@ -286,22 +286,26 @@ pub struct NotebookGUI {
 impl NotebookGUI {
     /// 创建新的笔记本 GUI
     pub fn new() -> Self {
-        let app = app::App::default();
+        // 初始化 FLTK 应用
+        let _app = app::App::default();
+        app::set_scheme(app::Scheme::Gtk);
+        
         let mut window = window::Window::new(100, 100, 1000, 700, "Yufmath Notebook");
+        window.set_color(enums::Color::White);
         
         // 创建菜单栏
-        let mut menu_bar = menu::MenuBar::new(0, 0, 1000, 30, None);
+        let menu_bar = menu::MenuBar::new(0, 0, 1000, 30, None);
         
         // 创建工具栏
         let mut toolbar = group::Group::new(0, 30, 1000, 40, None);
         toolbar.set_color(enums::Color::from_rgb(240, 240, 240));
         
         // 添加工具栏按钮
-        let mut new_code_btn = button::Button::new(10, 35, 80, 30, "新建代码");
-        let mut new_md_btn = button::Button::new(100, 35, 80, 30, "新建文档");
-        let mut run_btn = button::Button::new(190, 35, 60, 30, "运行");
-        let mut run_all_btn = button::Button::new(260, 35, 80, 30, "运行全部");
-        let mut save_btn = button::Button::new(350, 35, 60, 30, "保存");
+        let _new_code_btn = button::Button::new(10, 35, 80, 30, "新建代码");
+        let _new_md_btn = button::Button::new(100, 35, 80, 30, "新建文档");
+        let _run_btn = button::Button::new(190, 35, 60, 30, "运行");
+        let _run_all_btn = button::Button::new(260, 35, 80, 30, "运行全部");
+        let _save_btn = button::Button::new(350, 35, 60, 30, "保存");
         
         toolbar.end();
         
@@ -782,10 +786,8 @@ impl NotebookGUI {
     
     /// 运行主循环
     pub fn run(&mut self) -> NotebookResult<()> {
-        let app = app::App::default();
-        
         // 处理消息循环
-        while app.wait() {
+        while app::wait() {
             if let Some(msg) = app::Receiver::<i32>::get().recv() {
                 match msg {
                     1001 => { // 新建
