@@ -7,7 +7,7 @@ use std::sync::{Arc, Mutex};
 use std::sync::atomic::{AtomicBool, Ordering};
 use crate::core::{Expression, Number};
 use crate::parser::{Parser, ParseError, syntax::ExpressionParser};
-use crate::engine::{ComputeEngine, ComputeError, CachedComputeEngine, CacheStats, CacheUsageInfo};
+use crate::engine::{ComputeEngine, ComputeError, CachedComputeEngine, EnhancedComputeEngine, RuntimeEnhancedEngine, RuntimeConfig, CacheStats, CacheUsageInfo};
 use crate::formatter::{Formatter, FormatOptions, MultiFormatter};
 use super::{YufmathError, ComputeConfig, PerformanceMonitor, ComputeProgress};
 use super::progress::ProgressCallback;
@@ -32,7 +32,7 @@ impl Yufmath {
         
         Self {
             parser: Box::new(ExpressionParser::new()),
-            engine: Box::new(CachedComputeEngine::new(config.cache.clone())),
+            engine: Box::new(RuntimeEnhancedEngine::new()),
             formatter: Arc::new(Mutex::new(Box::new(MultiFormatter::new()))),
             monitor: Arc::new(Mutex::new(PerformanceMonitor::new())),
             config,
@@ -47,7 +47,7 @@ impl Yufmath {
         
         Self {
             parser: Box::new(ExpressionParser::new()),
-            engine: Box::new(CachedComputeEngine::new(config.cache.clone())),
+            engine: Box::new(RuntimeEnhancedEngine::new()),
             formatter: Arc::new(Mutex::new(Box::new(MultiFormatter::new()))),
             monitor: Arc::new(Mutex::new(PerformanceMonitor::new())),
             config,
@@ -60,13 +60,19 @@ impl Yufmath {
     pub fn compute(&self, input: &str) -> Result<String, YufmathError> {
         let expr = self.parser.parse(input)?;
         
-        // 尝试求值（对于纯数值表达式）
-        let vars = HashMap::new();
-        let result = match self.engine.evaluate(&expr, &vars) {
-            Ok(number) => Expression::Number(number),
-            Err(_) => {
-                // 如果求值失败，则简化表达式
-                self.engine.simplify(&expr)?
+        // 使用安全计算（如果是运行时增强引擎）
+        let result = if let Some(runtime_engine) = self.engine.as_any().downcast_ref::<RuntimeEnhancedEngine>() {
+            // 使用运行时增强引擎的安全计算
+            runtime_engine.safe_compute(&expr)?
+        } else {
+            // 尝试求值（对于纯数值表达式）
+            let vars = HashMap::new();
+            match self.engine.evaluate(&expr, &vars) {
+                Ok(number) => Expression::Number(number),
+                Err(_) => {
+                    // 如果求值失败，则简化表达式
+                    self.engine.simplify(&expr)?
+                }
             }
         };
         
@@ -124,6 +130,22 @@ impl Yufmath {
     pub fn set_format_options(&mut self, options: FormatOptions) {
         if let Ok(mut formatter) = self.formatter.lock() {
             formatter.set_options(options);
+        }
+    }
+    
+    /// 设置是否启用增强化简功能
+    pub fn set_enhanced_simplify(&mut self, enabled: bool) {
+        if let Some(enhanced_engine) = self.engine.as_any().downcast_ref::<EnhancedComputeEngine>() {
+            enhanced_engine.set_auto_simplify(enabled);
+        }
+    }
+    
+    /// 检查是否启用了增强化简功能
+    pub fn is_enhanced_simplify_enabled(&self) -> bool {
+        if let Some(enhanced_engine) = self.engine.as_any().downcast_ref::<EnhancedComputeEngine>() {
+            enhanced_engine.is_auto_simplify_enabled()
+        } else {
+            false
         }
     }
     
@@ -472,6 +494,95 @@ impl Yufmath {
             cached_engine.clear_cache().map_err(YufmathError::from)
         } else {
             Ok(()) // 如果不是缓存引擎，直接返回成功
+        }
+    }
+    
+    /// 设置变量值
+    pub fn set_variable(&self, name: String, value: Expression) -> Result<(), YufmathError> {
+        if let Some(runtime_engine) = self.engine.as_any().downcast_ref::<RuntimeEnhancedEngine>() {
+            runtime_engine.set_variable(name, value).map_err(YufmathError::from)
+        } else {
+            Err(YufmathError::internal("当前引擎不支持变量管理"))
+        }
+    }
+    
+    /// 设置变量值（从字符串解析）
+    pub fn set_variable_from_string(&self, name: String, value_str: &str) -> Result<(), YufmathError> {
+        let value_expr = self.parse(value_str)?;
+        self.set_variable(name, value_expr)
+    }
+    
+    /// 获取变量值
+    pub fn get_variable(&self, name: &str) -> Result<Option<Expression>, YufmathError> {
+        if let Some(runtime_engine) = self.engine.as_any().downcast_ref::<RuntimeEnhancedEngine>() {
+            runtime_engine.get_variable(name).map_err(YufmathError::from)
+        } else {
+            Ok(None)
+        }
+    }
+    
+    /// 获取所有变量
+    pub fn get_all_variables(&self) -> Result<HashMap<String, Expression>, YufmathError> {
+        if let Some(runtime_engine) = self.engine.as_any().downcast_ref::<RuntimeEnhancedEngine>() {
+            runtime_engine.get_all_variables().map_err(YufmathError::from)
+        } else {
+            Ok(HashMap::new())
+        }
+    }
+    
+    /// 清空所有变量
+    pub fn clear_variables(&self) -> Result<(), YufmathError> {
+        if let Some(runtime_engine) = self.engine.as_any().downcast_ref::<RuntimeEnhancedEngine>() {
+            runtime_engine.clear_variables().map_err(YufmathError::from)
+        } else {
+            Ok(())
+        }
+    }
+    
+    /// 删除指定变量
+    pub fn remove_variable(&self, name: &str) -> Result<bool, YufmathError> {
+        if let Some(runtime_engine) = self.engine.as_any().downcast_ref::<RuntimeEnhancedEngine>() {
+            runtime_engine.remove_variable(name).map_err(YufmathError::from)
+        } else {
+            Ok(false)
+        }
+    }
+    
+    /// 更新运行时配置
+    pub fn update_runtime_config(&self, config: RuntimeConfig) -> Result<(), YufmathError> {
+        if let Some(runtime_engine) = self.engine.as_any().downcast_ref::<RuntimeEnhancedEngine>() {
+            runtime_engine.update_runtime_config(config).map_err(YufmathError::from)
+        } else {
+            Err(YufmathError::internal("当前引擎不支持运行时配置"))
+        }
+    }
+    
+    /// 获取运行时配置
+    pub fn get_runtime_config(&self) -> Result<RuntimeConfig, YufmathError> {
+        if let Some(runtime_engine) = self.engine.as_any().downcast_ref::<RuntimeEnhancedEngine>() {
+            runtime_engine.get_runtime_config().map_err(YufmathError::from)
+        } else {
+            Err(YufmathError::internal("当前引擎不支持运行时配置"))
+        }
+    }
+    
+    /// 安全计算表达式（带运行时增强）
+    pub fn safe_compute(&self, expr: &Expression) -> Result<Expression, YufmathError> {
+        if let Some(runtime_engine) = self.engine.as_any().downcast_ref::<RuntimeEnhancedEngine>() {
+            runtime_engine.safe_compute(expr).map_err(YufmathError::from)
+        } else {
+            // 如果不是运行时增强引擎，使用普通简化
+            self.simplify(expr)
+        }
+    }
+    
+    /// 计算表达式并自动替换变量
+    pub fn compute_with_variables(&self, expr: &Expression) -> Result<Expression, YufmathError> {
+        if let Some(runtime_engine) = self.engine.as_any().downcast_ref::<RuntimeEnhancedEngine>() {
+            runtime_engine.compute_with_variables(expr).map_err(YufmathError::from)
+        } else {
+            // 如果不是运行时增强引擎，使用普通简化
+            self.simplify(expr)
         }
     }
     

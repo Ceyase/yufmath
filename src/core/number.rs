@@ -419,6 +419,25 @@ impl Number {
         }
     }
     
+    /// 检查是否为偶数
+    pub fn is_even(&self) -> bool {
+        match self {
+            Number::Integer(i) => i % BigInt::from(2) == BigInt::from(0),
+            Number::Rational(r) => {
+                if r.denom() == &BigInt::from(1) {
+                    r.numer() % BigInt::from(2) == BigInt::from(0)
+                } else {
+                    false
+                }
+            }
+            Number::Float(f) => f.fract() == 0.0 && (*f as i64) % 2 == 0,
+            Number::Complex { real, imaginary } => {
+                imaginary.is_zero() && real.is_even()
+            }
+            _ => false,
+        }
+    }
+    
     /// 取负值（别名）
     pub fn negate(&self) -> Result<Number, crate::engine::ComputeError> {
         Ok(self.neg())

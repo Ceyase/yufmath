@@ -204,7 +204,8 @@ pub use engine::{
     ComputeEngine, ComputeError,
     LazyExpression, DependencyGraph, LazyState, DependencyGraphStats,
     ParallelComputeEngine, TaskScheduler, ComputeTask, SchedulerStats, 
-    ExpressionPreprocessor, ParallelizationAnalysis
+    ExpressionPreprocessor, ParallelizationAnalysis,
+    RuntimeEnhancedEngine, RuntimeEnhancer, VariableManager, ComplexityAnalyzer, RuntimeConfig
 };
 pub use parser::{Parser, ParseError};
 pub use formatter::{Formatter, FormatOptions, FormatType};

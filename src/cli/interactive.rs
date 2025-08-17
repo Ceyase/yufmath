@@ -6,7 +6,7 @@ use rustyline::error::ReadlineError;
 use rustyline::{DefaultEditor, Result as RustylineResult};
 use std::collections::HashMap;
 use colored::*;
-use crate::Yufmath;
+use crate::{Yufmath, Expression};
 use crate::core::Number;
 use crate::formatter::{FormatOptions, FormatType, TerminalFormatter};
 
@@ -87,6 +87,9 @@ impl InteractiveSession {
             "clear" => {
                 // 清空变量
                 self.variables.clear();
+                if let Err(e) = self.yufmath.clear_variables() {
+                    eprintln!("警告: 清空系统变量时出错: {}", e);
+                }
                 Ok(Some("变量已清空".to_string()))
             }
             "vars" | "variables" => {
@@ -108,6 +111,12 @@ impl InteractiveSession {
                 self.terminal_formatter.set_approximations_enabled(self.show_approximations);
                 let status = if self.show_approximations { "开启".green() } else { "关闭".red() };
                 Ok(Some(format!("数值近似值: {}", status)))
+            }
+            "enhanced" | "enhanced_simplify" => {
+                let current_status = self.yufmath.is_enhanced_simplify_enabled();
+                self.yufmath.set_enhanced_simplify(!current_status);
+                let status = if !current_status { "开启".green() } else { "关闭".red() };
+                Ok(Some(format!("增强化简功能: {}", status)))
             }
             input if input.starts_with("format ") => {
                 let format_type = input.strip_prefix("format ").unwrap().trim();
@@ -144,22 +153,41 @@ impl InteractiveSession {
     
     /// 处理变量赋值
     fn handle_assignment(&mut self, var_name: String, expression: String) -> Result<String, Box<dyn std::error::Error>> {
-        // 首先计算表达式
-        match self.yufmath.compute(&expression) {
-            Ok(result) => {
-                // 尝试解析结果为数值并存储
-                // 这里简化处理，实际应该存储 Expression 类型
-                if self.verbose {
-                    println!("计算 {} = {}", expression, result);
+        // 首先解析表达式
+        match self.yufmath.parse(&expression) {
+            Ok(expr) => {
+                // 设置变量
+                match self.yufmath.set_variable(var_name.clone(), expr.clone()) {
+                    Ok(()) => {
+                        if self.verbose {
+                            println!("设置变量 {} = {:?}", var_name, expr);
+                        }
+                        
+                        // 尝试计算表达式的值用于显示
+                        match self.yufmath.compute(&expression) {
+                            Ok(result) => {
+                                // 同时更新本地变量存储（用于显示）
+                                if let Ok(Some(var_expr)) = self.yufmath.get_variable(&var_name) {
+                                    if let Expression::Number(num) = var_expr {
+                                        self.variables.insert(var_name.clone(), num);
+                                    }
+                                }
+                                
+                                Ok(format!("{} = {}", var_name, result))
+                            }
+                            Err(_) => {
+                                // 如果无法计算具体值，显示符号形式
+                                Ok(format!("{} = {:?}", var_name, expr))
+                            }
+                        }
+                    }
+                    Err(e) => {
+                        Err(format!("无法设置变量 '{}': {}", var_name, e).into())
+                    }
                 }
-                
-                // 暂时使用字符串存储，后续应该改为存储实际的 Number 类型
-                // self.variables.insert(var_name.clone(), parsed_number);
-                
-                Ok(format!("{} = {}", var_name, result))
             }
             Err(e) => {
-                Err(format!("无法计算表达式 '{}': {}", expression, e).into())
+                Err(format!("无法解析表达式 '{}': {}", expression, e).into())
             }
         }
     }
@@ -188,6 +216,7 @@ impl InteractiveSession {
   {}          切换详细模式
   {}           切换颜色输出
   {}     切换数值近似值显示
+  {}  切换增强化简功能
 
 {}:
   {}    设置输出格式 (standard, terminal, latex, mathml)
@@ -229,6 +258,7 @@ impl InteractiveSession {
             "verbose".green(),
             "colors".green(),
             "approx, approximations".green(),
+            "enhanced, enhanced_simplify".green(),
             "格式化命令".bright_yellow(),
             "format <type>".green(),
             "precision <n>".green(),
@@ -256,13 +286,34 @@ impl InteractiveSession {
     
     /// 显示当前变量
     fn show_variables(&self) -> String {
-        if self.variables.is_empty() {
+        // 获取系统变量
+        let system_vars = self.yufmath.get_all_variables().unwrap_or_default();
+        
+        if system_vars.is_empty() && self.variables.is_empty() {
             "没有定义变量".to_string()
         } else {
             let mut result = "当前变量:\n".to_string();
-            for (name, value) in &self.variables {
-                result.push_str(&format!("  {} = {:?}\n", name, value));
+            
+            // 显示系统变量
+            for (name, expr) in &system_vars {
+                // 尝试计算变量的值用于显示
+                match self.yufmath.compute_with_variables(expr) {
+                    Ok(computed) => {
+                        result.push_str(&format!("  {} = {:?}\n", name, computed));
+                    }
+                    Err(_) => {
+                        result.push_str(&format!("  {} = {:?}\n", name, expr));
+                    }
+                }
             }
+            
+            // 显示本地变量（如果有的话）
+            for (name, value) in &self.variables {
+                if !system_vars.contains_key(name) {
+                    result.push_str(&format!("  {} = {:?} (本地)\n", name, value));
+                }
+            }
+            
             result
         }
     }

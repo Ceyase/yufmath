@@ -93,27 +93,34 @@ impl MathConstant {
         }
     }
     
+    /// 检查常量是否为实数
+    pub fn is_real(&self) -> bool {
+        match self {
+            MathConstant::I => false, // 虚数单位不是实数
+            MathConstant::Undefined => false, // 未定义不是实数
+            _ => true,
+        }
+    }
+    
+    /// 检查常量是否为复数
+    pub fn is_complex(&self) -> bool {
+        matches!(self, MathConstant::I)
+    }
+    
     /// 将常量转换为精确的数值表示（如果可能）
     pub fn to_exact_number(&self) -> Option<Number> {
         match self {
             MathConstant::I => {
                 // 虚数单位 i = 0 + 1i
                 Some(Number::Complex {
-                    real: Box::new(Number::Integer(BigInt::from(0))),
-                    imaginary: Box::new(Number::Integer(BigInt::from(1))),
+                    real: Box::new(Number::zero()),
+                    imaginary: Box::new(Number::one()),
                 })
             }
-            MathConstant::PositiveInfinity => {
-                Some(Number::Float(f64::INFINITY))
-            }
-            MathConstant::NegativeInfinity => {
-                Some(Number::Float(f64::NEG_INFINITY))
-            }
-            MathConstant::Undefined => {
-                Some(Number::Float(f64::NAN))
-            }
-            // 其他常量保持符号形式以保证精确性
-            _ => None,
+            MathConstant::PositiveInfinity => Some(Number::Float(f64::INFINITY)),
+            MathConstant::NegativeInfinity => Some(Number::Float(f64::NEG_INFINITY)),
+            MathConstant::Undefined => Some(Number::Float(f64::NAN)),
+            _ => None, // 其他常量保持符号形式
         }
     }
     
@@ -145,19 +152,7 @@ impl MathConstant {
         }
     }
     
-    /// 检查常量是否为实数
-    pub fn is_real(&self) -> bool {
-        match self {
-            MathConstant::I => false,
-            MathConstant::Undefined => false,
-            _ => true,
-        }
-    }
-    
-    /// 检查常量是否为复数
-    pub fn is_complex(&self) -> bool {
-        matches!(self, MathConstant::I)
-    }
+
     
     /// 检查常量是否为有限值
     pub fn is_finite(&self) -> bool {

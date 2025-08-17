@@ -5,7 +5,9 @@
 
 pub mod compute;
 pub mod cached_compute;
+pub mod enhanced_compute;
 pub mod simplify;
+pub mod enhanced_simplify;
 pub mod calculus;
 pub mod algebra;
 pub mod polynomial;
@@ -14,6 +16,8 @@ pub mod matrix;
 pub mod cache;
 pub mod lazy;
 pub mod parallel;
+pub mod runtime_enhancement;
+pub mod runtime_enhanced_engine;
 pub mod error;
 
 #[cfg(test)]
@@ -24,9 +28,13 @@ use crate::core::{Expression, Number, MathConstant};
 pub use error::{ComputeError, ErrorSeverity};
 pub use cache::{ComputeCache, CacheManager, CacheStats, CacheUsageInfo};
 pub use cached_compute::CachedComputeEngine;
+pub use enhanced_compute::EnhancedComputeEngine;
 pub use lazy::{LazyExpression, DependencyGraph, LazyState, DependencyGraphStats};
 pub use parallel::{ParallelComputeEngine, TaskScheduler, ComputeTask, SchedulerStats, ExpressionPreprocessor, ParallelizationAnalysis};
 pub use matrix::MatrixEngine;
+pub use enhanced_simplify::EnhancedSimplifier;
+pub use runtime_enhancement::{RuntimeEnhancer, VariableManager, ComplexityAnalyzer, RuntimeConfig};
+pub use runtime_enhanced_engine::RuntimeEnhancedEngine;
 
 /// 计算引擎 trait
 pub trait ComputeEngine: Send + Sync {
