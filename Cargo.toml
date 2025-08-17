@@ -3,10 +3,13 @@ name = "yufmath"
 version = "0.1.0"
 edition = "2021"
 description = "一个基于 Rust 的高性能计算机代数系统（CAS）库"
-license = "MIT OR Apache-2.0"
+license = "MIT"
 repository = "https://github.com/your-username/yufmath"
 keywords = ["math", "algebra", "cas", "symbolic", "computation"]
 categories = ["mathematics", "science"]
+
+[profile.release]
+strip = true
 
 [dependencies]
 # 数值计算依赖

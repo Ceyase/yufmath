@@ -10,6 +10,7 @@ use super::simplify::Simplifier;
 use super::polynomial::PolynomialEngine;
 use super::number_theory::NumberTheoryEngine;
 use super::calculus::CalculusEngine;
+use super::matrix::MatrixEngine;
 
 /// 基础计算引擎实现
 pub struct BasicComputeEngine {
@@ -21,6 +22,8 @@ pub struct BasicComputeEngine {
     number_theory_engine: NumberTheoryEngine,
     /// 微积分引擎
     calculus_engine: CalculusEngine,
+    /// 矩阵和向量运算引擎
+    matrix_engine: MatrixEngine,
 }
 
 impl BasicComputeEngine {
@@ -31,6 +34,7 @@ impl BasicComputeEngine {
             polynomial_engine: PolynomialEngine::new(),
             number_theory_engine: NumberTheoryEngine::new(),
             calculus_engine: CalculusEngine::new(),
+            matrix_engine: MatrixEngine::new(),
         }
     }
     
@@ -82,16 +86,94 @@ impl ComputeEngine for BasicComputeEngine {
                     .ok_or_else(|| ComputeError::undefined_variable(name))
             }
             Expression::BinaryOp { op, left, right } => {
-                let left_val = self.evaluate(left, vars)?;
-                let right_val = self.evaluate(right, vars)?;
-                self.evaluate_binary_op(&left_val, &right_val, op)
+                use crate::core::BinaryOperator;
+                
+                // 对于矩阵和向量专用运算符，在表达式级别处理
+                match op {
+                    BinaryOperator::MatrixMultiply => {
+                        let result = self.matrix_engine.matrix_multiply(left, right)?;
+                        self.evaluate(&result, vars)
+                    }
+                    BinaryOperator::DotProduct => {
+                        let result = self.matrix_engine.vector_dot(left, right)?;
+                        self.evaluate(&result, vars)
+                    }
+                    BinaryOperator::CrossProduct => {
+                        let result = self.matrix_engine.vector_cross(left, right)?;
+                        self.evaluate(&result, vars)
+                    }
+                    _ => {
+                        // 对于其他运算符，先求值操作数再计算
+                        let left_val = self.evaluate(left, vars)?;
+                        let right_val = self.evaluate(right, vars)?;
+                        self.evaluate_binary_op(&left_val, &right_val, op)
+                    }
+                }
             }
             Expression::UnaryOp { op, operand } => {
-                let operand_val = self.evaluate(operand, vars)?;
-                self.evaluate_unary_op(&operand_val, op)
+                use crate::core::UnaryOperator;
+                
+                // 对于矩阵专用运算符，在表达式级别处理
+                match op {
+                    UnaryOperator::Transpose => {
+                        let result = self.matrix_engine.matrix_transpose(operand)?;
+                        self.evaluate(&result, vars)
+                    }
+                    UnaryOperator::Determinant => {
+                        let result = self.matrix_engine.matrix_determinant(operand)?;
+                        self.evaluate(&result, vars)
+                    }
+                    UnaryOperator::Inverse => {
+                        let result = self.matrix_engine.matrix_inverse(operand)?;
+                        self.evaluate(&result, vars)
+                    }
+                    UnaryOperator::Trace => {
+                        let result = self.matrix_engine.matrix_trace(operand)?;
+                        self.evaluate(&result, vars)
+                    }
+                    _ => {
+                        // 对于其他运算符，先求值操作数再计算
+                        let operand_val = self.evaluate(operand, vars)?;
+                        self.evaluate_unary_op(&operand_val, op)
+                    }
+                }
             }
             Expression::Constant(c) => {
                 self.constant_to_number(c)
+            }
+            Expression::Matrix(elements) => {
+                // 矩阵求值：对每个元素求值
+                let mut evaluated_elements = Vec::with_capacity(elements.len());
+                for row in elements {
+                    let mut evaluated_row = Vec::with_capacity(row.len());
+                    for elem in row {
+                        let evaluated_elem = self.evaluate(elem, vars)?;
+                        evaluated_row.push(evaluated_elem);
+                    }
+                    evaluated_elements.push(evaluated_row);
+                }
+                
+                // 如果矩阵是1×1，返回单个数值
+                if evaluated_elements.len() == 1 && evaluated_elements[0].len() == 1 {
+                    Ok(evaluated_elements[0][0].clone())
+                } else {
+                    Err(ComputeError::unsupported_operation("矩阵无法求值为单个数值"))
+                }
+            }
+            Expression::Vector(elements) => {
+                // 向量求值：对每个元素求值
+                let mut evaluated_elements = Vec::with_capacity(elements.len());
+                for elem in elements {
+                    let evaluated_elem = self.evaluate(elem, vars)?;
+                    evaluated_elements.push(evaluated_elem);
+                }
+                
+                // 如果向量只有一个元素，返回该元素
+                if evaluated_elements.len() == 1 {
+                    Ok(evaluated_elements[0].clone())
+                } else {
+                    Err(ComputeError::unsupported_operation("向量无法求值为单个数值"))
+                }
             }
             _ => {
                 // 对于其他复杂表达式，先简化再求值
@@ -220,24 +302,20 @@ impl ComputeEngine for BasicComputeEngine {
     
     // 矩阵运算功能实现（暂时使用占位符）
     
-    fn matrix_add(&self, _a: &Expression, _b: &Expression) -> Result<Expression, ComputeError> {
-        // 占位符实现，将在后续任务中完成
-        todo!("矩阵加法功能将在后续任务中实现")
+    fn matrix_add(&self, a: &Expression, b: &Expression) -> Result<Expression, ComputeError> {
+        self.matrix_engine.matrix_add(a, b)
     }
     
-    fn matrix_multiply(&self, _a: &Expression, _b: &Expression) -> Result<Expression, ComputeError> {
-        // 占位符实现，将在后续任务中完成
-        todo!("矩阵乘法功能将在后续任务中实现")
+    fn matrix_multiply(&self, a: &Expression, b: &Expression) -> Result<Expression, ComputeError> {
+        self.matrix_engine.matrix_multiply(a, b)
     }
     
-    fn matrix_determinant(&self, _matrix: &Expression) -> Result<Expression, ComputeError> {
-        // 占位符实现，将在后续任务中完成
-        todo!("矩阵行列式功能将在后续任务中实现")
+    fn matrix_determinant(&self, matrix: &Expression) -> Result<Expression, ComputeError> {
+        self.matrix_engine.matrix_determinant(matrix)
     }
     
-    fn matrix_inverse(&self, _matrix: &Expression) -> Result<Expression, ComputeError> {
-        // 占位符实现，将在后续任务中完成
-        todo!("矩阵逆功能将在后续任务中实现")
+    fn matrix_inverse(&self, matrix: &Expression) -> Result<Expression, ComputeError> {
+        self.matrix_engine.matrix_inverse(matrix)
     }
     
     // 复数运算功能实现（暂时使用占位符）
@@ -259,19 +337,16 @@ impl ComputeEngine for BasicComputeEngine {
     
     // 向量运算功能实现（暂时使用占位符）
     
-    fn vector_dot(&self, _a: &Expression, _b: &Expression) -> Result<Expression, ComputeError> {
-        // 占位符实现，将在后续任务中完成
-        todo!("向量点积功能将在后续任务中实现")
+    fn vector_dot(&self, a: &Expression, b: &Expression) -> Result<Expression, ComputeError> {
+        self.matrix_engine.vector_dot(a, b)
     }
     
-    fn vector_cross(&self, _a: &Expression, _b: &Expression) -> Result<Expression, ComputeError> {
-        // 占位符实现，将在后续任务中完成
-        todo!("向量叉积功能将在后续任务中实现")
+    fn vector_cross(&self, a: &Expression, b: &Expression) -> Result<Expression, ComputeError> {
+        self.matrix_engine.vector_cross(a, b)
     }
     
-    fn vector_norm(&self, _v: &Expression) -> Result<Expression, ComputeError> {
-        // 占位符实现，将在后续任务中完成
-        todo!("向量范数功能将在后续任务中实现")
+    fn vector_norm(&self, v: &Expression) -> Result<Expression, ComputeError> {
+        self.matrix_engine.vector_norm(v)
     }
     
     // 集合运算功能实现（暂时使用占位符）

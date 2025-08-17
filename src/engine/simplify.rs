@@ -154,8 +154,51 @@ impl Simplifier {
                 self.simplify_function(name, &args_simplified)
             }
             
-            // 其他类型暂时不简化
-            _ => Ok(expr.clone()),
+            // 简化矩阵表达式
+            Expression::Matrix(rows) => {
+                let mut simplified_rows = Vec::with_capacity(rows.len());
+                for row in rows {
+                    let mut simplified_row = Vec::with_capacity(row.len());
+                    for elem in row {
+                        let simplified_elem = self.simplify_recursive(elem)?;
+                        simplified_row.push(simplified_elem);
+                    }
+                    simplified_rows.push(simplified_row);
+                }
+                Ok(Expression::Matrix(simplified_rows))
+            }
+            
+            // 简化向量表达式
+            Expression::Vector(elements) => {
+                let mut simplified_elements = Vec::with_capacity(elements.len());
+                for elem in elements {
+                    let simplified_elem = self.simplify_recursive(elem)?;
+                    simplified_elements.push(simplified_elem);
+                }
+                Ok(Expression::Vector(simplified_elements))
+            }
+            
+            // 简化集合表达式
+            Expression::Set(elements) => {
+                let mut simplified_elements = Vec::with_capacity(elements.len());
+                for elem in elements {
+                    let simplified_elem = self.simplify_recursive(elem)?;
+                    simplified_elements.push(simplified_elem);
+                }
+                Ok(Expression::Set(simplified_elements))
+            }
+            
+            // 简化区间表达式
+            Expression::Interval { start, end, start_inclusive, end_inclusive } => {
+                let simplified_start = self.simplify_recursive(start)?;
+                let simplified_end = self.simplify_recursive(end)?;
+                Ok(Expression::Interval {
+                    start: Box::new(simplified_start),
+                    end: Box::new(simplified_end),
+                    start_inclusive: *start_inclusive,
+                    end_inclusive: *end_inclusive,
+                })
+            }
         }
     }
     
@@ -167,6 +210,12 @@ impl Simplifier {
             BinaryOperator::Multiply => self.simplify_multiplication(left, right),
             BinaryOperator::Divide => self.simplify_division(left, right),
             BinaryOperator::Power => self.simplify_power(left, right),
+            
+            // 矩阵和向量运算的简化
+            BinaryOperator::MatrixMultiply => self.simplify_matrix_multiply(left, right),
+            BinaryOperator::DotProduct => self.simplify_dot_product(left, right),
+            BinaryOperator::CrossProduct => self.simplify_cross_product(left, right),
+            
             _ => Ok(Expression::binary_op(op.clone(), left.clone(), right.clone())),
         }
     }
@@ -382,6 +431,13 @@ impl Simplifier {
             UnaryOperator::Negate => self.simplify_negation(operand),
             UnaryOperator::Plus => Ok(operand.clone()), // +x = x
             UnaryOperator::Abs => self.simplify_absolute_value(operand),
+            
+            // 矩阵专用运算符的简化
+            UnaryOperator::Transpose => self.simplify_transpose(operand),
+            UnaryOperator::Determinant => self.simplify_determinant(operand),
+            UnaryOperator::Inverse => self.simplify_inverse(operand),
+            UnaryOperator::Trace => self.simplify_trace(operand),
+            
             _ => Ok(Expression::unary_op(op.clone(), operand.clone())),
         }
     }
@@ -1402,6 +1458,186 @@ impl Simplifier {
         } else {
             None
         }
+    }
+    
+    // 矩阵和向量运算的简化方法
+    
+    /// 简化矩阵乘法
+    fn simplify_matrix_multiply(&self, left: &Expression, right: &Expression) -> Result<Expression, ComputeError> {
+        // 基本简化规则
+        match (left, right) {
+            // 零矩阵乘法：0 * A = 0
+            (Expression::Matrix(left_rows), _) if self.is_zero_matrix(left_rows) => {
+                Ok(left.clone())
+            }
+            (_, Expression::Matrix(right_rows)) if self.is_zero_matrix(right_rows) => {
+                Ok(right.clone())
+            }
+            
+            // 单位矩阵乘法：I * A = A, A * I = A
+            (Expression::Matrix(left_rows), _) if self.is_identity_matrix(left_rows) => {
+                Ok(right.clone())
+            }
+            (_, Expression::Matrix(right_rows)) if self.is_identity_matrix(right_rows) => {
+                Ok(left.clone())
+            }
+            
+            // 其他情况保持原样
+            _ => Ok(Expression::binary_op(BinaryOperator::MatrixMultiply, left.clone(), right.clone()))
+        }
+    }
+    
+    /// 简化向量点积
+    fn simplify_dot_product(&self, left: &Expression, right: &Expression) -> Result<Expression, ComputeError> {
+        // 基本简化规则
+        match (left, right) {
+            // 零向量点积：0 · v = 0
+            (Expression::Vector(left_elems), _) if self.is_zero_vector(left_elems) => {
+                Ok(Expression::number(Number::from(0)))
+            }
+            (_, Expression::Vector(right_elems)) if self.is_zero_vector(right_elems) => {
+                Ok(Expression::number(Number::from(0)))
+            }
+            
+            // 其他情况保持原样
+            _ => Ok(Expression::binary_op(BinaryOperator::DotProduct, left.clone(), right.clone()))
+        }
+    }
+    
+    /// 简化向量叉积
+    fn simplify_cross_product(&self, left: &Expression, right: &Expression) -> Result<Expression, ComputeError> {
+        // 基本简化规则
+        match (left, right) {
+            // 零向量叉积：0 × v = 0
+            (Expression::Vector(left_elems), _) if self.is_zero_vector(left_elems) => {
+                Ok(left.clone())
+            }
+            (_, Expression::Vector(right_elems)) if self.is_zero_vector(right_elems) => {
+                Ok(right.clone())
+            }
+            
+            // 向量与自身叉积：v × v = 0
+            _ if left == right => {
+                if let Expression::Vector(elems) = left {
+                    let zero_vector = vec![Expression::number(Number::from(0)); elems.len()];
+                    Ok(Expression::Vector(zero_vector))
+                } else {
+                    Ok(Expression::binary_op(BinaryOperator::CrossProduct, left.clone(), right.clone()))
+                }
+            }
+            
+            // 其他情况保持原样
+            _ => Ok(Expression::binary_op(BinaryOperator::CrossProduct, left.clone(), right.clone()))
+        }
+    }
+    
+    /// 简化矩阵转置
+    fn simplify_transpose(&self, operand: &Expression) -> Result<Expression, ComputeError> {
+        match operand {
+            // 转置的转置：(A^T)^T = A
+            Expression::UnaryOp { op: UnaryOperator::Transpose, operand: inner } => {
+                Ok(inner.as_ref().clone())
+            }
+            
+            // 其他情况保持原样
+            _ => Ok(Expression::unary_op(UnaryOperator::Transpose, operand.clone()))
+        }
+    }
+    
+    /// 简化矩阵行列式
+    fn simplify_determinant(&self, operand: &Expression) -> Result<Expression, ComputeError> {
+        match operand {
+            // 单位矩阵的行列式：det(I) = 1
+            Expression::Matrix(rows) if self.is_identity_matrix(rows) => {
+                Ok(Expression::number(Number::from(1)))
+            }
+            
+            // 零矩阵的行列式：det(0) = 0
+            Expression::Matrix(rows) if self.is_zero_matrix(rows) => {
+                Ok(Expression::number(Number::from(0)))
+            }
+            
+            // 其他情况保持原样
+            _ => Ok(Expression::unary_op(UnaryOperator::Determinant, operand.clone()))
+        }
+    }
+    
+    /// 简化矩阵逆
+    fn simplify_inverse(&self, operand: &Expression) -> Result<Expression, ComputeError> {
+        match operand {
+            // 单位矩阵的逆：I^(-1) = I
+            Expression::Matrix(rows) if self.is_identity_matrix(rows) => {
+                Ok(operand.clone())
+            }
+            
+            // 逆的逆：(A^(-1))^(-1) = A
+            Expression::UnaryOp { op: UnaryOperator::Inverse, operand: inner } => {
+                Ok(inner.as_ref().clone())
+            }
+            
+            // 其他情况保持原样
+            _ => Ok(Expression::unary_op(UnaryOperator::Inverse, operand.clone()))
+        }
+    }
+    
+    /// 简化矩阵的迹
+    fn simplify_trace(&self, operand: &Expression) -> Result<Expression, ComputeError> {
+        match operand {
+            // 零矩阵的迹：tr(0) = 0
+            Expression::Matrix(rows) if self.is_zero_matrix(rows) => {
+                Ok(Expression::number(Number::from(0)))
+            }
+            
+            // n×n单位矩阵的迹：tr(I_n) = n
+            Expression::Matrix(rows) if self.is_identity_matrix(rows) => {
+                Ok(Expression::number(Number::from(rows.len() as i64)))
+            }
+            
+            // 其他情况保持原样
+            _ => Ok(Expression::unary_op(UnaryOperator::Trace, operand.clone()))
+        }
+    }
+    
+    /// 检查是否为零矩阵
+    fn is_zero_matrix(&self, rows: &[Vec<Expression>]) -> bool {
+        rows.iter().all(|row| {
+            row.iter().all(|elem| self.is_zero(elem))
+        })
+    }
+    
+    /// 检查是否为单位矩阵
+    fn is_identity_matrix(&self, rows: &[Vec<Expression>]) -> bool {
+        if rows.is_empty() {
+            return false;
+        }
+        
+        let n = rows.len();
+        if rows.iter().any(|row| row.len() != n) {
+            return false; // 不是方阵
+        }
+        
+        for i in 0..n {
+            for j in 0..n {
+                if i == j {
+                    // 对角线元素应该是1
+                    if !self.is_one(&rows[i][j]) {
+                        return false;
+                    }
+                } else {
+                    // 非对角线元素应该是0
+                    if !self.is_zero(&rows[i][j]) {
+                        return false;
+                    }
+                }
+            }
+        }
+        
+        true
+    }
+    
+    /// 检查是否为零向量
+    fn is_zero_vector(&self, elements: &[Expression]) -> bool {
+        elements.iter().all(|elem| self.is_zero(elem))
     }
 }
 

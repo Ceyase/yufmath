@@ -10,10 +10,14 @@ pub mod calculus;
 pub mod algebra;
 pub mod polynomial;
 pub mod number_theory;
+pub mod matrix;
 pub mod cache;
 pub mod lazy;
 pub mod parallel;
 pub mod error;
+
+#[cfg(test)]
+mod matrix_tests;
 
 use std::collections::HashMap;
 use crate::core::{Expression, Number, MathConstant};
@@ -22,6 +26,7 @@ pub use cache::{ComputeCache, CacheManager, CacheStats, CacheUsageInfo};
 pub use cached_compute::CachedComputeEngine;
 pub use lazy::{LazyExpression, DependencyGraph, LazyState, DependencyGraphStats};
 pub use parallel::{ParallelComputeEngine, TaskScheduler, ComputeTask, SchedulerStats, ExpressionPreprocessor, ParallelizationAnalysis};
+pub use matrix::MatrixEngine;
 
 /// 计算引擎 trait
 pub trait ComputeEngine: Send + Sync {
