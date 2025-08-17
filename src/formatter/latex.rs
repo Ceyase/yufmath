@@ -183,7 +183,71 @@ impl LaTeXFormatter {
     /// 格式化函数调用
     fn format_function(&self, name: &str, args: &[Expression]) -> String {
         let args_str: Vec<String> = args.iter().map(|arg| self.format(arg)).collect();
-        format!("\\text{{{}}}\\left({}\\right)", name, args_str.join(", "))
+        
+        match name {
+            // 平方根函数
+            "sqrt" => {
+                if args.len() == 1 {
+                    format!("\\sqrt{{{}}}", args_str[0])
+                } else {
+                    format!("\\text{{sqrt}}\\left({}\\right)", args_str.join(", "))
+                }
+            }
+            // 三角函数
+            "sin" => format!("\\sin\\left({}\\right)", args_str.join(", ")),
+            "cos" => format!("\\cos\\left({}\\right)", args_str.join(", ")),
+            "tan" => format!("\\tan\\left({}\\right)", args_str.join(", ")),
+            "asin" | "arcsin" => format!("\\arcsin\\left({}\\right)", args_str.join(", ")),
+            "acos" | "arccos" => format!("\\arccos\\left({}\\right)", args_str.join(", ")),
+            "atan" | "arctan" => format!("\\arctan\\left({}\\right)", args_str.join(", ")),
+            // 双曲函数
+            "sinh" => format!("\\sinh\\left({}\\right)", args_str.join(", ")),
+            "cosh" => format!("\\cosh\\left({}\\right)", args_str.join(", ")),
+            "tanh" => format!("\\tanh\\left({}\\right)", args_str.join(", ")),
+            "asinh" => format!("\\text{{asinh}}\\left({}\\right)", args_str.join(", ")),
+            "acosh" => format!("\\text{{acosh}}\\left({}\\right)", args_str.join(", ")),
+            "atanh" => format!("\\text{{atanh}}\\left({}\\right)", args_str.join(", ")),
+            // 对数和指数函数
+            "ln" => format!("\\ln\\left({}\\right)", args_str.join(", ")),
+            "log" => {
+                if args.len() == 1 {
+                    format!("\\log\\left({}\\right)", args_str[0])
+                } else if args.len() == 2 {
+                    format!("\\log_{{{}}}\\left({}\\right)", args_str[1], args_str[0])
+                } else {
+                    format!("\\text{{log}}\\left({}\\right)", args_str.join(", "))
+                }
+            }
+            "log10" => format!("\\log_{{10}}\\left({}\\right)", args_str.join(", ")),
+            "log2" => format!("\\log_2\\left({}\\right)", args_str.join(", ")),
+            "exp" => format!("\\exp\\left({}\\right)", args_str.join(", ")),
+            // 其他数学函数
+            "abs" => format!("\\left|{}\\right|", args_str.join(", ")),
+            "factorial" => {
+                if args.len() == 1 {
+                    format!("{}!", args_str[0])
+                } else {
+                    format!("\\text{{factorial}}\\left({}\\right)", args_str.join(", "))
+                }
+            }
+            "gamma" => format!("\\Gamma\\left({}\\right)", args_str.join(", ")),
+            // 复数函数
+            "real" => format!("\\text{{Re}}\\left({}\\right)", args_str.join(", ")),
+            "imag" => format!("\\text{{Im}}\\left({}\\right)", args_str.join(", ")),
+            "conj" => format!("\\overline{{{}}}", args_str.join(", ")),
+            "arg" => format!("\\arg\\left({}\\right)", args_str.join(", ")),
+            // 矩阵函数
+            "det" => format!("\\det\\left({}\\right)", args_str.join(", ")),
+            "tr" | "trace" => format!("\\text{{tr}}\\left({}\\right)", args_str.join(", ")),
+            // 最大值最小值
+            "max" => format!("\\max\\left\\{{{}\\right\\}}", args_str.join(", ")),
+            "min" => format!("\\min\\left\\{{{}\\right\\}}", args_str.join(", ")),
+            // 求和与乘积
+            "sum" => format!("\\sum\\left({}\\right)", args_str.join(", ")),
+            "prod" => format!("\\prod\\left({}\\right)", args_str.join(", ")),
+            // 默认情况：使用 text 格式
+            _ => format!("\\text{{{}}}\\left({}\\right)", name, args_str.join(", "))
+        }
     }
     
     /// 格式化矩阵
