@@ -38,7 +38,11 @@ jobs:
           body: TODO New Release.
           draft: false
           prerelease: false
-          files: '["yufmath-gnu-linux-x86_64.tar.gz", "yufmath-windows.zip", "yufmath-gnu-linux-x86_64.tar.gz.sha256", "yufmath-windows.zip.sha256"]'
+          files: |
+            yufmath-gnu-linux-x86_64.tar.gz
+            yufmath-windows.zip
+            yufmath-gnu-linux-x86_64.tar.gz.sha256
+            yufmath-windows.zip.sha256
 
   macos:
     runs-on: macos-latest
@@ -72,7 +76,11 @@ jobs:
           body: TODO New Release.
           draft: false
           prerelease: false
-          files: '["yufmath-apple-darwin-x86_64.tar.gz", "yufmath-apple-darwin-aarch64.tar.gz", "yufmath-apple-darwin-x86_64.tar.gz.sha256", "yufmath-apple-darwin-aarch64.tar.gz.sha256"]'
+          files: |
+            yufmath-apple-darwin-x86_64.tar.gz
+            yufmath-apple-darwin-aarch64.tar.gz
+            yufmath-apple-darwin-x86_64.tar.gz.sha256
+            yufmath-apple-darwin-aarch64.tar.gz.sha256
 
   crates:
     runs-on: ubuntu-latest
