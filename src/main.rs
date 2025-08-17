@@ -93,8 +93,8 @@ fn main() {
         None => {
             // 如果没有指定子命令，显示帮助信息
             //show_help();
-            handle_interactive(&args);
-            Ok(())
+            handle_interactive(&args)
+            //Ok(())
         }
     };
     
@@ -439,58 +439,4 @@ fn handle_interactive(args: &CliArgs) -> Result<(), Box<dyn std::error::Error>> 
     }
     
     interactive::run_interactive()
-}
-
-/// 处理笔记本模式
-fn handle_notepad(file: Option<&str>, title: Option<&str>, args: &CliArgs) -> Result<(), Box<dyn std::error::Error>> {
-    use yufmath::notebook::{Notebook, NotebookFormat, NotebookDeserializer, NotebookUI};
-    use std::path::Path;
-    
-    if args.verbose {
-        match file {
-            Some(path) => println!("启动笔记本模式，文件: {}", path),
-            None => println!("启动笔记本模式，创建新笔记本"),
-        }
-    }
-    
-    let notebook = if let Some(file_path) = file {
-        let path = Path::new(file_path);
-        
-        if path.exists() {
-            // 加载现有笔记本
-            if !args.quiet {
-                println!("正在加载笔记本: {}", file_path);
-            }
-            NotebookDeserializer::load_from_file(path)?
-        } else {
-            // 创建新笔记本并保存到指定路径
-            let notebook_title = title.unwrap_or_else(|| {
-                path.file_stem()
-                    .and_then(|s| s.to_str())
-                    .unwrap_or("新笔记本")
-            });
-            
-            if !args.quiet {
-                println!("正在创建新笔记本: {} ({})", notebook_title, file_path);
-            }
-            let mut notebook = NotebookFormat::create_template(notebook_title);
-            
-            // 保存到文件
-            yufmath::notebook::NotebookSerializer::save_to_file(&mut notebook, path)?;
-            notebook
-        }
-    } else {
-        // 创建临时笔记本
-        let notebook_title = title.unwrap_or("临时笔记本");
-        if !args.quiet {
-            println!("正在创建临时笔记本: {}", notebook_title);
-        }
-        NotebookFormat::create_template(notebook_title)
-    };
-    
-    // 启动笔记本界面
-    let mut ui = NotebookUI::with_notebook(notebook);
-    ui.run()?;
-    
-    Ok(())
 }

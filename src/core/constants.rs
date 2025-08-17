@@ -4,7 +4,6 @@
 
 use super::Number;
 use num_bigint::BigInt;
-use num_rational::BigRational;
 use bigdecimal::BigDecimal;
 use std::collections::HashMap;
 

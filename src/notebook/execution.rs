@@ -2,11 +2,11 @@
 //!
 //! 提供单元格的执行、调度和依赖管理功能。
 
-use super::{NotebookCell, CellId, CellType, CellContent, ScopeManager, NotebookError, NotebookResult};
+use super::{NotebookCell, CellId, ScopeManager, NotebookError, NotebookResult};
 use crate::api::Yufmath;
 use crate::core::Expression;
 use crate::engine::ComputeError;
-use crate::formatter::{FormatType, FormatOptions};
+use crate::formatter::{FormatType};
 use std::collections::{HashMap, HashSet, VecDeque};
 use std::time::{Duration, Instant, SystemTime};
 use std::sync::{Arc, Mutex};

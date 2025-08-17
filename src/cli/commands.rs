@@ -3,7 +3,7 @@
 //! 实现各种命令行命令的处理逻辑。
 
 use super::args::{CliArgs, Commands, OutputFormat};
-use crate::notebook::{Notebook, NotebookFormat, NotebookDeserializer, NotebookUI};
+use crate::notebook::{NotebookFormat, NotebookDeserializer, NotebookUI};
 use crate::api::Yufmath;
 use std::path::Path;
 

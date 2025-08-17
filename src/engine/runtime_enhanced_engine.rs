@@ -6,7 +6,7 @@ use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 use crate::core::{Expression, Number, MathConstant};
 use super::{ComputeEngine, ComputeError, EnhancedComputeEngine};
-use super::runtime_enhancement::{RuntimeEnhancer, RuntimeConfig, VariableManager};
+use super::runtime_enhancement::{RuntimeEnhancer, RuntimeConfig};
 
 /// 运行时增强计算引擎
 pub struct RuntimeEnhancedEngine {

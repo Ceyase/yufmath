@@ -4,11 +4,11 @@
 
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
-use crate::core::{Expression, Number, MathConstant, BinaryOperator, UnaryOperator};
+use crate::core::{Expression, Number, MathConstant, BinaryOperator};
 use crate::api::CacheConfig;
 use super::{ComputeEngine, ComputeError};
 use super::compute::BasicComputeEngine;
-use super::cache::{ComputeCache, CacheManager, FastCacheKey, ExactCacheKey, SymbolicCacheKey};
+use super::cache::{CacheManager, FastCacheKey, ExactCacheKey, SymbolicCacheKey};
 use num_bigint::BigInt;
 
 /// 带缓存的计算引擎

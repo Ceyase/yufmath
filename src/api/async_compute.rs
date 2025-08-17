@@ -8,8 +8,7 @@ use std::sync::{Arc, Mutex};
 use std::task::{Context, Poll, Waker};
 use std::thread;
 use std::time::{Duration, Instant};
-use crate::core::Expression;
-use super::{YufmathError, ComputeProgress, ProgressCallback};
+use super::{YufmathError, ComputeProgress};
 
 /// 异步计算结果
 pub type AsyncResult<T> = Pin<Box<dyn Future<Output = Result<T, YufmathError>> + Send>>;

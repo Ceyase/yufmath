@@ -7,7 +7,6 @@ use std::time::{Duration, Instant};
 use crate::core::{Expression, Number, BinaryOperator, UnaryOperator};
 use super::{ComputeError, ComputeEngine};
 use num_bigint::BigInt;
-use num_rational::BigRational;
 use num_traits::Signed;
 
 /// 运行时增强配置

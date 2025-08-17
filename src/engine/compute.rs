@@ -41,8 +41,6 @@ impl BasicComputeEngine {
     /// 计算二元运算
     fn evaluate_binary_op(&self, left: &Number, right: &Number, op: &crate::core::BinaryOperator) -> Result<Number, ComputeError> {
         use crate::core::BinaryOperator;
-        use num_bigint::BigInt;
-        use num_rational::BigRational;
         
         match op {
             BinaryOperator::Add => left.add(right),

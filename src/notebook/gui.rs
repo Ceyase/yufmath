@@ -3,12 +3,8 @@
 //! 基于 FLTK 实现的笔记本交互界面，类似 Jupyter 的文本模式。
 
 use super::{Notebook, NotebookCell, CellId, CellType, ExecutionEngine, NotebookError, NotebookResult, AutoCompleteEngine, CompletionSuggestion};
-use crate::formatter::FormatType;
 use fltk::{prelude::*, *};
 use std::collections::HashMap;
-use std::sync::{Arc, Mutex};
-use std::cell::RefCell;
-use std::rc::Rc;
 
 /// 单元格编辑器组件
 pub struct CellEditor {

@@ -7,8 +7,7 @@ use crate::engine::error::ComputeError;
 use std::collections::HashMap;
 use num_bigint::BigInt;
 use num_rational::BigRational;
-use num_traits::{Zero, One, Signed};
-use num_integer::Integer;
+use num_traits::{Zero, Signed};
 
 /// 多项式项，表示为系数 * 变量^指数的形式
 #[derive(Debug, Clone, PartialEq)]

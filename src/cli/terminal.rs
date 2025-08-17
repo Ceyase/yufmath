@@ -28,8 +28,6 @@ pub fn init_terminal() -> Result<(), Box<dyn std::error::Error>> {
 
 #[cfg(windows)]
 fn init_windows_terminal() -> Result<(), Box<dyn std::error::Error>> {
-    use std::ptr;
-    
     // Windows API 常量
     const STD_OUTPUT_HANDLE: u32 = 0xFFFFFFF5_u32; // -11 as u32
     const STD_ERROR_HANDLE: u32 = 0xFFFFFFF4_u32;  // -12 as u32
@@ -117,8 +115,6 @@ pub fn supports_color() -> bool {
 
 #[cfg(windows)]
 fn check_windows_color_support() -> bool {
-    use std::ptr;
-    
     const STD_OUTPUT_HANDLE: u32 = 0xFFFFFFF5_u32; // -11 as u32
     const ENABLE_VIRTUAL_TERMINAL_PROCESSING: u32 = 0x0004;
     

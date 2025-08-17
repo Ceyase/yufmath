@@ -5,7 +5,6 @@
 use crate::core::{Expression, Number, BinaryOperator, UnaryOperator, MathConstant};
 use super::ComputeError;
 use num_bigint::BigInt;
-use num_rational::BigRational;
 use num_traits::ToPrimitive;
 
 /// 微积分运算引擎

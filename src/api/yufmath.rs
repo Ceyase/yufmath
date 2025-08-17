@@ -6,12 +6,12 @@ use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 use std::sync::atomic::{AtomicBool, Ordering};
 use crate::core::{Expression, Number};
-use crate::parser::{Parser, ParseError, syntax::ExpressionParser};
-use crate::engine::{ComputeEngine, ComputeError, CachedComputeEngine, EnhancedComputeEngine, RuntimeEnhancedEngine, RuntimeConfig, CacheStats, CacheUsageInfo};
+use crate::parser::{Parser, syntax::ExpressionParser};
+use crate::engine::{ComputeEngine, CachedComputeEngine, EnhancedComputeEngine, RuntimeEnhancedEngine, RuntimeConfig, CacheStats, CacheUsageInfo};
 use crate::formatter::{Formatter, FormatOptions, MultiFormatter};
 use super::{YufmathError, ComputeConfig, PerformanceMonitor, ComputeProgress};
 use super::progress::ProgressCallback;
-use super::async_compute::{AsyncComputation, BatchAsyncComputer, AsyncConfig};
+use super::async_compute::{AsyncComputation, BatchAsyncComputer};
 
 /// Yufmath 库的主要入口点
 pub struct Yufmath {

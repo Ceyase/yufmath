@@ -2093,8 +2093,6 @@ impl Eq for Expression {}
 // 手动实现 Hash trait
 impl std::hash::Hash for Expression {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-        use std::hash::Hash;
-        
         match self {
             Expression::Number(n) => {
                 0u8.hash(state);

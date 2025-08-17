@@ -36,7 +36,6 @@ pub use gui::{NotebookGUI, CellEditor};
 pub use autocomplete::{AutoCompleteEngine, CompletionSuggestion, SuggestionType};
 pub use export::{NotebookExporter, ExportFormat, ExportOptions};
 
-use crate::core::Expression;
 use crate::engine::ComputeError;
 use std::collections::HashMap;
 use std::time::{SystemTime, Duration};

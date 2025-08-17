@@ -1416,7 +1416,6 @@ impl Simplifier {
     
     /// 计算整数的平方根（如果是完全平方数）
     fn integer_sqrt(&self, n: &BigInt) -> Option<BigInt> {
-        use num_bigint::ToBigInt;
         use num_traits::ToPrimitive;
         
         if n < &BigInt::from(0) {

@@ -3,7 +3,7 @@
 //! 定义笔记本中的单元格数据结构和相关操作。
 
 use crate::core::Expression;
-use crate::formatter::{FormatOptions, FormatType};
+use crate::formatter::{FormatType};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::time::SystemTime;

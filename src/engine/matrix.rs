@@ -2,12 +2,9 @@
 //!
 //! 实现矩阵和向量的各种数学运算，包括加法、乘法、行列式、逆矩阵等。
 
-use crate::core::{Expression, Number, BinaryOperator, UnaryOperator};
+use crate::core::{Expression, Number};
 use super::{ComputeError, ComputeEngine};
-use std::collections::HashMap;
-use num_bigint::BigInt;
-use num_rational::BigRational;
-use num_traits::{Zero, One, Signed};
+use num_traits::{Zero};
 
 /// 矩阵和向量运算引擎
 pub struct MatrixEngine {

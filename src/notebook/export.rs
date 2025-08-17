@@ -3,7 +3,6 @@
 //! 提供将笔记本导出为不同格式的功能。
 
 use super::{Notebook, NotebookCell, CellType, NotebookError, NotebookResult};
-use crate::formatter::{FormatType, FormatOptions};
 use std::fs;
 use std::path::Path;
 

@@ -11,7 +11,6 @@ use crate::engine::error::ComputeError;
 use crate::engine::simplify::Simplifier;
 use std::collections::HashMap;
 use num_bigint::BigInt;
-use num_rational::BigRational;
 use num_traits::{Zero, One, ToPrimitive};
 
 /// 增强化简器

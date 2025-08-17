@@ -3,8 +3,6 @@
 //! 提供基于终端的笔记本交互界面。
 
 use super::{Notebook, NotebookCell, CellId, CellType, ExecutionEngine, NotebookError, NotebookResult};
-use crate::formatter::FormatType;
-use std::collections::HashMap;
 use std::io::{self, Write};
 use std::time::Duration;
 

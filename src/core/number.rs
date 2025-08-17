@@ -6,7 +6,7 @@
 use num_bigint::{BigInt, ToBigInt};
 use num_rational::BigRational;
 use bigdecimal::{BigDecimal, Zero, ToPrimitive, FromPrimitive};
-use num_traits::{Zero as NumZero, One as NumOne, FromPrimitive as NumFromPrimitive, Signed};
+use num_traits::{Signed};
 use std::fmt::{self, Display, Debug};
 
 /// 支持多种数值类型的统一表示，优先使用精确表示
