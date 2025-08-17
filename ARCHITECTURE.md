@@ -82,6 +82,7 @@ yufmath/
 ### 4. 格式化器 (formatter/)
 
 - **StandardFormatter**: 标准数学记号格式化
+- **TerminalFormatter**: 终端彩色格式化，支持颜色输出和数值近似值显示
 - **LaTeXFormatter**: LaTeX 格式输出
 - **MathMLFormatter**: MathML 格式输出
 
@@ -95,7 +96,11 @@ yufmath/
 
 - **参数解析**: 使用 clap 处理命令行参数
 - **命令实现**: 各种数学运算命令
-- **交互模式**: REPL 环境
+- **交互模式**: 增强的 REPL 环境，支持：
+  - 彩色语法高亮
+  - 数值近似值显示（如 √3 ≈ 1.732051）
+  - 智能数学符号（×、÷、π、√ 等）
+  - 可配置的显示选项
 
 ### 7. FFI 接口 (ffi/)
 
@@ -169,6 +174,10 @@ yufmath/
 ### 工具依赖
 
 - `clap`: 命令行参数解析
+- `rustyline`: 交互式输入支持
+- `colored`: 终端颜色输出
+- `indicatif`: 进度条支持
+- `rayon`: 并行计算支持
 - `criterion`: 性能基准测试
 
 ## 编译和测试

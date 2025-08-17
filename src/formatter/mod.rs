@@ -6,11 +6,13 @@
 pub mod standard;
 pub mod latex;
 pub mod mathml;
+pub mod terminal;
 
 // 重新导出格式化器
 pub use standard::StandardFormatter;
 pub use latex::LaTeXFormatter;
 pub use mathml::MathMLFormatter;
+pub use terminal::TerminalFormatter;
 
 use crate::core::Expression;
 
@@ -19,6 +21,8 @@ use crate::core::Expression;
 pub enum FormatType {
     /// 标准数学记号
     Standard,
+    /// 终端彩色格式
+    Terminal,
     /// LaTeX 格式
     LaTeX,
     /// MathML 格式
@@ -63,6 +67,7 @@ impl FormatterFactory {
     pub fn create_formatter(format_type: FormatType) -> Box<dyn Formatter> {
         match format_type {
             FormatType::Standard => Box::new(StandardFormatter::new()),
+            FormatType::Terminal => Box::new(TerminalFormatter::new()),
             FormatType::LaTeX => Box::new(LaTeXFormatter::new()),
             FormatType::MathML => Box::new(MathMLFormatter::new()),
         }

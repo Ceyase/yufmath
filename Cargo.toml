@@ -29,6 +29,9 @@ clap = { version = "4.0", features = ["derive"] }
 # 交互式输入支持
 rustyline = "13.0"
 
+# 终端颜色支持
+colored = "2.0"
+
 # 进度条支持
 indicatif = "0.17"
 
@@ -64,3 +67,7 @@ path = "examples/performance_demo.rs"
 [[example]]
 name = "advanced_features_demo"
 path = "examples/advanced_features_demo.rs"
+
+[[example]]
+name = "terminal_demo"
+path = "examples/terminal_demo.rs"

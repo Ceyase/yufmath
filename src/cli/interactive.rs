@@ -5,9 +5,10 @@
 use rustyline::error::ReadlineError;
 use rustyline::{DefaultEditor, Result as RustylineResult};
 use std::collections::HashMap;
+use colored::*;
 use crate::Yufmath;
 use crate::core::Number;
-use crate::formatter::{FormatOptions, FormatType};
+use crate::formatter::{FormatOptions, FormatType, TerminalFormatter};
 
 /// 交互式会话状态
 pub struct InteractiveSession {
@@ -17,22 +18,36 @@ pub struct InteractiveSession {
     variables: HashMap<String, Number>,
     /// 格式化选项
     format_options: FormatOptions,
+    /// 终端格式化器
+    terminal_formatter: TerminalFormatter,
     /// 是否显示详细信息
     verbose: bool,
+    /// 是否启用颜色输出
+    colors_enabled: bool,
+    /// 是否显示数值近似值
+    show_approximations: bool,
 }
 
 impl InteractiveSession {
     /// 创建新的交互式会话
     pub fn new() -> Self {
         let mut yufmath = Yufmath::new();
-        let format_options = FormatOptions::default();
+        let mut format_options = FormatOptions::default();
+        format_options.format_type = FormatType::Terminal;
         yufmath.set_format_options(format_options.clone());
+        
+        let mut terminal_formatter = TerminalFormatter::new();
+        terminal_formatter.set_colors_enabled(true);
+        terminal_formatter.set_approximations_enabled(true);
         
         Self {
             yufmath,
             variables: HashMap::new(),
             format_options,
+            terminal_formatter,
             verbose: false,
+            colors_enabled: true,
+            show_approximations: true,
         }
     }
     
@@ -79,7 +94,20 @@ impl InteractiveSession {
             }
             "verbose" => {
                 self.verbose = !self.verbose;
-                Ok(Some(format!("详细模式: {}", if self.verbose { "开启" } else { "关闭" })))
+                let status = if self.verbose { "开启".green() } else { "关闭".red() };
+                Ok(Some(format!("详细模式: {}", status)))
+            }
+            "colors" => {
+                self.colors_enabled = !self.colors_enabled;
+                self.terminal_formatter.set_colors_enabled(self.colors_enabled);
+                let status = if self.colors_enabled { "开启".green() } else { "关闭".red() };
+                Ok(Some(format!("颜色输出: {}", status)))
+            }
+            "approx" | "approximations" => {
+                self.show_approximations = !self.show_approximations;
+                self.terminal_formatter.set_approximations_enabled(self.show_approximations);
+                let status = if self.show_approximations { "开启".green() } else { "关闭".red() };
+                Ok(Some(format!("数值近似值: {}", status)))
             }
             input if input.starts_with("format ") => {
                 let format_type = input.strip_prefix("format ").unwrap().trim();
@@ -88,6 +116,10 @@ impl InteractiveSession {
             input if input.starts_with("precision ") => {
                 let precision_str = input.strip_prefix("precision ").unwrap().trim();
                 self.set_precision(precision_str)
+            }
+            input if input.starts_with("approx_precision ") => {
+                let precision_str = input.strip_prefix("approx_precision ").unwrap().trim();
+                self.set_approximation_precision(precision_str)
             }
             _ => Ok(None)
         }
@@ -146,42 +178,80 @@ impl InteractiveSession {
     
     /// 显示帮助信息
     fn show_help(&self) -> String {
-        r#"Yufmath 交互式计算器帮助
+        format!(r#"{}
 
-基本命令:
-  help, ?          显示此帮助信息
-  quit, exit, q    退出程序
-  clear            清空所有变量
-  vars, variables  显示所有变量
-  verbose          切换详细模式
+{}:
+  {}          显示此帮助信息
+  {}    退出程序
+  {}            清空所有变量
+  {}  显示所有变量
+  {}          切换详细模式
+  {}           切换颜色输出
+  {}     切换数值近似值显示
 
-格式化命令:
-  format <type>    设置输出格式 (standard, latex, mathml)
-  precision <n>    设置数值精度
+{}:
+  {}    设置输出格式 (standard, terminal, latex, mathml)
+  {}    设置数值精度
+  {}  设置近似值显示精度
 
-数学运算:
-  2 + 3            基本算术运算
-  x^2 + 2*x + 1    代数表达式
-  sin(pi/2)        三角函数
-  diff(x^2, x)     求导 (暂未实现)
-  integrate(x, x)  积分 (暂未实现)
+{}:
+  {}            基本算术运算
+  {}    代数表达式
+  {}        三角函数和数学常量
+  {}     求导 (暂未实现)
+  {}  积分 (暂未实现)
 
-变量赋值:
-  x = 5            将值赋给变量
-  y = x^2 + 1      使用变量的表达式
+{}:
+  {}            将值赋给变量
+  {}      使用变量的表达式
 
-示例:
-  yufmath> 2 + 3
-  5
+{}:
+  {} 2 + 3
+  {}
   
-  yufmath> x = 10
-  x = 10
+  {} x = 10
+  {} x = 10
   
-  yufmath> x^2 + 2*x + 1
-  121
+  {} sqrt(3)
+  {} √(3) ≈ 1.732051
+  
+  {} sin(pi/2)
+  {} sin(π ≈ 3.141593/2 ≈ 1.570796) ≈ 1.000000
 
 输入多行表达式时，以空行结束输入。
-"#.to_string()
+"#,
+            "Yufmath 交互式计算器帮助".bright_cyan().bold(),
+            "基本命令".bright_yellow(),
+            "help, ?".green(),
+            "quit, exit, q".green(),
+            "clear".green(),
+            "vars, variables".green(),
+            "verbose".green(),
+            "colors".green(),
+            "approx, approximations".green(),
+            "格式化命令".bright_yellow(),
+            "format <type>".green(),
+            "precision <n>".green(),
+            "approx_precision <n>".green(),
+            "数学运算".bright_yellow(),
+            "2 + 3".cyan(),
+            "x^2 + 2*x + 1".cyan(),
+            "sin(pi/2)".cyan(),
+            "diff(x^2, x)".cyan(),
+            "integrate(x, x)".cyan(),
+            "变量赋值".bright_yellow(),
+            "x = 5".cyan(),
+            "y = x^2 + 1".cyan(),
+            "示例".bright_yellow(),
+            "yufmath>".bright_green(),
+            "5".bright_cyan(),
+            "yufmath>".bright_green(),
+            "x = 10".bright_cyan(),
+            "yufmath>".bright_green(),
+            "√(3) ≈ 1.732051".bright_cyan(),
+            "yufmath>".bright_green(),
+            "sin(π ≈ 3.141593/2 ≈ 1.570796) ≈ 1.000000".bright_cyan(),
+        )
     }
     
     /// 显示当前变量
@@ -201,17 +271,25 @@ impl InteractiveSession {
     fn set_format(&mut self, format_type: &str) -> Result<Option<String>, Box<dyn std::error::Error>> {
         let new_format = match format_type.to_lowercase().as_str() {
             "standard" | "std" => FormatType::Standard,
+            "terminal" | "term" => FormatType::Terminal,
             "latex" | "tex" => FormatType::LaTeX,
             "mathml" | "xml" => FormatType::MathML,
             _ => {
-                return Ok(Some("无效的格式类型。可用格式: standard, latex, mathml".to_string()));
+                return Ok(Some("无效的格式类型。可用格式: standard, terminal, latex, mathml".red().to_string()));
             }
         };
         
         self.format_options.format_type = new_format.clone();
         self.yufmath.set_format_options(self.format_options.clone());
         
-        Ok(Some(format!("输出格式已设置为: {:?}", new_format)))
+        let format_name = match new_format {
+            FormatType::Standard => "标准格式".cyan(),
+            FormatType::Terminal => "终端彩色格式".cyan(),
+            FormatType::LaTeX => "LaTeX 格式".cyan(),
+            FormatType::MathML => "MathML 格式".cyan(),
+        };
+        
+        Ok(Some(format!("输出格式已设置为: {}", format_name)))
     }
     
     /// 设置数值精度
@@ -220,10 +298,23 @@ impl InteractiveSession {
             Ok(precision) => {
                 self.format_options.precision = Some(precision);
                 self.yufmath.set_format_options(self.format_options.clone());
-                Ok(Some(format!("数值精度已设置为: {}", precision)))
+                Ok(Some(format!("数值精度已设置为: {}", precision.to_string().cyan())))
             }
             Err(_) => {
-                Ok(Some("无效的精度值，请输入正整数".to_string()))
+                Ok(Some("无效的精度值，请输入正整数".red().to_string()))
+            }
+        }
+    }
+    
+    /// 设置近似值精度
+    fn set_approximation_precision(&mut self, precision_str: &str) -> Result<Option<String>, Box<dyn std::error::Error>> {
+        match precision_str.parse::<usize>() {
+            Ok(precision) => {
+                self.terminal_formatter.set_approximation_precision(precision);
+                Ok(Some(format!("近似值精度已设置为: {}", precision.to_string().cyan())))
+            }
+            Err(_) => {
+                Ok(Some("无效的精度值，请输入正整数".red().to_string()))
             }
         }
     }
@@ -231,8 +322,14 @@ impl InteractiveSession {
 
 /// 运行交互式模式
 pub fn run_interactive() -> Result<(), Box<dyn std::error::Error>> {
-    println!("Yufmath v{} - 计算机代数系统", crate::VERSION);
-    println!("输入 'help' 查看帮助，输入 'quit' 退出\n");
+    println!("{} {} - {}", 
+        "Yufmath".bright_cyan().bold(),
+        format!("v{}", crate::VERSION).bright_green(),
+        "计算机代数系统".bright_white());
+    println!("{}", "━".repeat(50).bright_black());
+    println!("✨ {} - 支持彩色输出和数值近似值", "增强终端模式".bright_yellow());
+    println!("📚 输入 {} 查看帮助，输入 {} 退出", "'help'".green(), "'quit'".red());
+    println!();
     
     let mut rl = DefaultEditor::new()?;
     let mut session = InteractiveSession::new();
@@ -243,7 +340,8 @@ pub fn run_interactive() -> Result<(), Box<dyn std::error::Error>> {
     
     loop {
         // 读取用户输入
-        let readline = rl.readline("yufmath> ");
+        let prompt = format!("{} ", "yufmath>".bright_green().bold());
+        let readline = rl.readline(&prompt);
         
         match readline {
             Ok(line) => {
@@ -264,7 +362,7 @@ pub fn run_interactive() -> Result<(), Box<dyn std::error::Error>> {
                 if input.trim().to_lowercase() == "quit" 
                     || input.trim().to_lowercase() == "exit" 
                     || input.trim().to_lowercase() == "q" {
-                    println!("再见！");
+                    println!("{} {}", "👋".bright_yellow(), "再见！".bright_cyan());
                     break;
                 }
                 
@@ -276,20 +374,20 @@ pub fn run_interactive() -> Result<(), Box<dyn std::error::Error>> {
                         }
                     }
                     Err(e) => {
-                        eprintln!("错误: {}", e);
+                        eprintln!("{} {}", "❌ 错误:".bright_red(), e.to_string().red());
                     }
                 }
             }
             Err(ReadlineError::Interrupted) => {
-                println!("^C");
+                println!("{}", "^C".bright_yellow());
                 continue;
             }
             Err(ReadlineError::Eof) => {
-                println!("^D");
+                println!("{}", "^D".bright_yellow());
                 break;
             }
             Err(err) => {
-                eprintln!("错误: {:?}", err);
+                eprintln!("{} {:?}", "❌ 错误:".bright_red(), err);
                 break;
             }
         }
@@ -311,7 +409,8 @@ fn handle_multiline_input(rl: &mut DefaultEditor, first_line: String) -> Rustyli
     }
     
     loop {
-        let line = rl.readline("     ... ")?;
+        let continuation_prompt = format!("{} ", "     ...".bright_black());
+        let line = rl.readline(&continuation_prompt)?;
         
         if line.trim().is_empty() {
             // 空行表示输入结束
