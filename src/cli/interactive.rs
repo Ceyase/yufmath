@@ -496,7 +496,7 @@ pub fn run_interactive() -> Result<(), Box<dyn std::error::Error>> {
     }
     
     // 保存历史记录
-    let _ = rl.save_history(history_file);
+    // let _ = rl.save_history(history_file);
     
     Ok(())
 }

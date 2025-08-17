@@ -3,6 +3,7 @@
 
 # Kiro IDE 配置文件
 /.kiro
+ARCHITECTURE.md
 
 # 编辑器和 IDE 文件
 .vscode/

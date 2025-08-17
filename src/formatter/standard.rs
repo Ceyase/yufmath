@@ -228,6 +228,28 @@ impl StandardFormatter {
                     format!("{} {} {}", left_str, op_str, right_str)
                 }
             }
+            BinaryOperator::Add => {
+                // 特殊处理 a + (-b) -> a - b
+                match right {
+                    Expression::UnaryOp { op: UnaryOperator::Negate, operand } => {
+                        let right_str = if self.needs_parentheses(operand, Some(&BinaryOperator::Subtract), true) {
+                            format!("({})", self.format(operand))
+                        } else {
+                            self.format(operand)
+                        };
+                        format!("{} - {}", left_str, right_str)
+                    }
+                    Expression::Number(n) if n.is_negative() => {
+                        // 处理负数：a + (-5) -> a - 5
+                        let positive_n = -n.clone();
+                        let right_str = self.format(&Expression::Number(positive_n));
+                        format!("{} - {}", left_str, right_str)
+                    }
+                    _ => {
+                        format!("{} {} {}", left_str, op_str, right_str)
+                    }
+                }
+            }
             _ => {
                 format!("{} {} {}", left_str, op_str, right_str)
             }
