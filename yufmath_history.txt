@@ -4,3 +4,7 @@ exit
 exit
 10^100
 exit
+1
+1+1
+quit
+2 + 3

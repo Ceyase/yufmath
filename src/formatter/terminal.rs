@@ -36,6 +36,11 @@ impl TerminalFormatter {
         self.enable_colors = enabled;
     }
     
+    /// 检查是否启用了颜色输出
+    pub fn colors_enabled(&self) -> bool {
+        self.enable_colors
+    }
+    
     /// 设置是否显示数值近似值
     pub fn set_approximations_enabled(&mut self, enabled: bool) {
         self.show_approximations = enabled;

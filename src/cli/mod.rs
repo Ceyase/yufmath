@@ -7,7 +7,9 @@ pub mod commands;
 pub mod interactive;
 pub mod args;
 pub mod progress;
+pub mod terminal;
 
 pub use args::CliArgs;
 pub use commands::run_command;
 pub use interactive::run_interactive;
+pub use terminal::{init_terminal, supports_color, ColorConfig};

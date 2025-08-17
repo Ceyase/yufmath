@@ -32,6 +32,9 @@ rustyline = "13.0"
 # 终端颜色支持
 ansi_term = "0.12"
 
+# 终端检测支持
+atty = "0.2"
+
 # 进度条支持
 indicatif = "0.17"
 
@@ -75,3 +78,7 @@ path = "examples/terminal_demo.rs"
 [[example]]
 name = "quick_terminal_demo"
 path = "examples/quick_terminal_demo.rs"
+
+[[example]]
+name = "terminal_color_test"
+path = "examples/terminal_color_test.rs"

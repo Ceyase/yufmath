@@ -7,10 +7,17 @@ use std::process;
 use yufmath::cli::args::{CliArgs, Commands, OutputFormat};
 use yufmath::cli::interactive;
 use yufmath::cli::progress::{create_compute_progress, create_batch_progress};
+use yufmath::cli::terminal::init_terminal;
 use yufmath::formatter::{FormatOptions, FormatType};
 use yufmath::Yufmath;
 
 fn main() {
+    // 初始化终端以支持 ANSI 颜色输出（特别是在 Windows 上）
+    if let Err(e) = init_terminal() {
+        eprintln!("警告: 终端初始化失败: {}", e);
+        eprintln!("颜色输出可能无法正常工作");
+    }
+    
     let args = CliArgs::parse();
     
     // 设置日志级别

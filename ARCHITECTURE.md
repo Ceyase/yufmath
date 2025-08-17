@@ -44,7 +44,9 @@ yufmath/
 │   │   ├── mod.rs
 │   │   ├── args.rs         # 参数定义
 │   │   ├── commands.rs     # 命令实现
-│   │   └── interactive.rs  # 交互模式
+│   │   ├── interactive.rs  # 交互模式
+│   │   ├── progress.rs     # 进度条支持
+│   │   └── terminal.rs     # 终端初始化和颜色支持
 │   └── ffi/                # 外部函数接口
 │       ├── mod.rs
 │       ├── c_api.rs        # C API
@@ -103,6 +105,12 @@ yufmath/
   - 数值近似值显示（如 √3 ≈ 1.732051）
   - 智能数学符号（×、÷、π、√ 等）
   - 可配置的显示选项
+- **终端支持**: 跨平台终端初始化和颜色支持：
+  - Windows ENABLE_VIRTUAL_TERMINAL_PROCESSING 设置
+  - 智能颜色支持检测
+  - 环境变量配置（NO_COLOR、FORCE_COLOR）
+  - 交互式终端检测
+- **进度显示**: 长时间计算的进度条支持
 
 ### 7. FFI 接口 (ffi/)
 
@@ -205,11 +213,14 @@ yufmath/
   - [x] 复杂度分析器：自动检测和限制过于复杂的计算
   - [x] 安全计算策略：智能选择计算方式，保持系统稳定性
   - [x] 运行时增强引擎：集成所有增强功能的统一计算引擎
-- [x] BUG 修复（任务 16.1）
-  - [x] 使用 ansi-term 代替 colored 库，提高兼容性
-  - [x] 修复交互模式下的精度问题：默认禁用不可靠的数值近似值预览
-  - [x] 用户可通过 'approx' 命令手动启用近似值显示
-  - [x] 改进终端颜色输出的稳定性
+- [x] Windows 终端颜色支持修复（任务 16.1）
+  - [x] 实现 ENABLE_VIRTUAL_TERMINAL_PROCESSING 设置
+  - [x] 创建跨平台终端初始化模块
+  - [x] 添加智能颜色支持检测
+  - [x] 实现环境变量配置支持（NO_COLOR、FORCE_COLOR）
+  - [x] 修复 Windows 系统上的 ANSI 颜色输出问题
+  - [x] 添加终端颜色支持测试工具
+  - [x] 改进交互模式的颜色配置管理
 
 ### ⏳ 开发中
 
@@ -243,6 +254,7 @@ yufmath/
 - `clap`: 命令行参数解析
 - `rustyline`: 交互式输入支持
 - `ansi_term`: 终端颜色输出（替代 colored 库）
+- `atty`: 终端检测支持
 - `indicatif`: 进度条支持
 - `rayon`: 并行计算支持
 - `criterion`: 性能基准测试

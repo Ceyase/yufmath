@@ -9,6 +9,7 @@ use ansi_term::Colour;
 use crate::{Yufmath, Expression};
 use crate::core::Number;
 use crate::formatter::{FormatOptions, FormatType, TerminalFormatter};
+use super::terminal::{ColorConfig, supports_color};
 
 /// 交互式会话状态
 pub struct InteractiveSession {
@@ -22,8 +23,8 @@ pub struct InteractiveSession {
     terminal_formatter: TerminalFormatter,
     /// 是否显示详细信息
     verbose: bool,
-    /// 是否启用颜色输出
-    colors_enabled: bool,
+    /// 颜色配置
+    color_config: ColorConfig,
     /// 是否显示数值近似值
     show_approximations: bool,
 }
@@ -36,8 +37,11 @@ impl InteractiveSession {
         format_options.format_type = FormatType::Terminal;
         yufmath.set_format_options(format_options.clone());
         
+        let color_config = ColorConfig::from_env();
+        let colors_enabled = color_config.should_use_color();
+        
         let mut terminal_formatter = TerminalFormatter::new();
-        terminal_formatter.set_colors_enabled(true);
+        terminal_formatter.set_colors_enabled(colors_enabled);
         // 默认禁用近似值显示以避免精度问题
         terminal_formatter.set_approximations_enabled(false);
         
@@ -47,7 +51,7 @@ impl InteractiveSession {
             format_options,
             terminal_formatter,
             verbose: false,
-            colors_enabled: true,
+            color_config,
             // 默认禁用近似值显示以避免精度问题
             show_approximations: false,
         }
@@ -107,9 +111,19 @@ impl InteractiveSession {
                 Ok(Some(format!("详细模式: {}", status)))
             }
             "colors" => {
-                self.colors_enabled = !self.colors_enabled;
-                self.terminal_formatter.set_colors_enabled(self.colors_enabled);
-                let status = if self.colors_enabled { 
+                // 切换颜色配置
+                if self.color_config.should_use_color() {
+                    self.color_config.no_color = true;
+                    self.color_config.force_color = false;
+                } else {
+                    self.color_config.no_color = false;
+                    self.color_config.force_color = true;
+                }
+                
+                let colors_enabled = self.color_config.should_use_color();
+                self.terminal_formatter.set_colors_enabled(colors_enabled);
+                
+                let status = if colors_enabled { 
                     Colour::Green.paint("开启").to_string() 
                 } else { 
                     Colour::Red.paint("关闭").to_string() 
@@ -391,14 +405,23 @@ impl InteractiveSession {
 
 /// 运行交互式模式
 pub fn run_interactive() -> Result<(), Box<dyn std::error::Error>> {
-    println!("{} {} - {}", 
-        Colour::Cyan.bold().paint("Yufmath"),
-        Colour::Green.bold().paint(format!("v{}", crate::VERSION)),
-        Colour::White.bold().paint("计算机代数系统"));
-    println!("{}", Colour::Black.bold().paint("━".repeat(50)));
-    println!("输入 {} 查看帮助，输入 {} 退出", 
-        Colour::Green.paint("'help'"), 
-        Colour::Red.paint("'quit'"));
+    let color_support = supports_color();
+    
+    if color_support {
+        println!("{} {} - {}", 
+            Colour::Cyan.bold().paint("Yufmath"),
+            Colour::Green.bold().paint(format!("v{}", crate::VERSION)),
+            Colour::White.bold().paint("计算机代数系统"));
+        println!("{}", Colour::Black.bold().paint("━".repeat(50)));
+        println!("输入 {} 查看帮助，输入 {} 退出", 
+            Colour::Green.paint("'help'"), 
+            Colour::Red.paint("'quit'"));
+    } else {
+        println!("Yufmath v{} - 计算机代数系统", crate::VERSION);
+        println!("{}", "━".repeat(50));
+        println!("输入 'help' 查看帮助，输入 'quit' 退出");
+        println!("注意: 终端不支持颜色输出或颜色已被禁用");
+    }
     println!();
     
     let mut rl = DefaultEditor::new()?;
