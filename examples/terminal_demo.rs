@@ -62,8 +62,8 @@ fn demo_constants(formatter: &TerminalFormatter) {
     let constants = vec![
         ("圆周率", Expression::Constant(MathConstant::Pi)),
         ("自然常数", Expression::Constant(MathConstant::E)),
-        ("黄金比例", Expression::Constant(MathConstant::Phi)),
-        ("欧拉常数", Expression::Constant(MathConstant::Gamma)),
+        ("黄金比例", Expression::Constant(MathConstant::GoldenRatio)),
+        ("欧拉常数", Expression::Constant(MathConstant::EulerGamma)),
     ];
     
     for (name, expr) in constants {

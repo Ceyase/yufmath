@@ -71,3 +71,7 @@ path = "examples/advanced_features_demo.rs"
 [[example]]
 name = "terminal_demo"
 path = "examples/terminal_demo.rs"
+
+[[example]]
+name = "quick_terminal_demo"
+path = "examples/quick_terminal_demo.rs"

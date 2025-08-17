@@ -158,10 +158,11 @@ impl TerminalFormatter {
         match constant {
             MathConstant::Pi => Some(consts::PI),
             MathConstant::E => Some(consts::E),
-            MathConstant::Phi => Some(1.618033988749895), // 黄金比例
-            MathConstant::Gamma => Some(0.5772156649015329), // 欧拉-马歇罗尼常数
+            MathConstant::GoldenRatio => Some(1.618033988749895), // 黄金比例
+            MathConstant::EulerGamma => Some(0.5772156649015329), // 欧拉-马歇罗尼常数
+            MathConstant::Catalan => Some(0.915965594177219), // 卡塔兰常数
             MathConstant::I => None, // 虚数单位无法表示为实数
-            MathConstant::Infinity => Some(f64::INFINITY),
+            MathConstant::PositiveInfinity => Some(f64::INFINITY),
             MathConstant::NegativeInfinity => Some(f64::NEG_INFINITY),
             MathConstant::Undefined => Some(f64::NAN),
         }
