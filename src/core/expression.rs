@@ -8,7 +8,7 @@ use std::collections::HashMap;
 use num_traits::{ToPrimitive, Zero, Signed};
 
 /// 数学表达式的核心数据结构
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub enum Expression {
     /// 数值常量
     Number(Number),

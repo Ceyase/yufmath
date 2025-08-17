@@ -10,7 +10,7 @@ use num_traits::{Zero as NumZero, One as NumOne, FromPrimitive as NumFromPrimiti
 use std::fmt::{self, Display, Debug};
 
 /// 支持多种数值类型的统一表示，优先使用精确表示
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub enum Number {
     /// 任意精度整数（无精度限制）
     Integer(BigInt),

@@ -9,7 +9,7 @@ use bigdecimal::BigDecimal;
 use std::collections::HashMap;
 
 /// 数学常量类型
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
 pub enum MathConstant {
     /// 圆周率 π
     Pi,

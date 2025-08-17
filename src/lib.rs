@@ -175,6 +175,7 @@ pub mod formatter;
 pub mod api;
 pub mod cli;
 pub mod ffi;
+pub mod notebook;
 
 // 重新导出主要的公共接口
 pub use api::{
@@ -209,6 +210,16 @@ pub use engine::{
 };
 pub use parser::{Parser, ParseError};
 pub use formatter::{Formatter, FormatOptions, FormatType};
+pub use notebook::{
+    NotebookCell, CellType, CellContent, CellMetadata, CellId,
+    Notebook, NotebookManager, NotebookMetadata,
+    ExecutionEngine, ExecutionResult, ExecutionContext,
+    VariableScope, ScopeManager, VariableBinding,
+    NotebookFormat, NotebookSerializer, NotebookDeserializer,
+    NotebookUI, UIEvent, UICommand, KeyBinding,
+    NotebookExporter, ExportFormat, ExportOptions,
+    NotebookError, NotebookResult,
+};
 
 /// 库的版本信息
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");

@@ -84,7 +84,8 @@ fn main() {
         }
         None => {
             // 如果没有指定子命令，显示帮助信息
-            show_help();
+            //show_help();
+            handle_interactive(&args);
             Ok(())
         }
     };

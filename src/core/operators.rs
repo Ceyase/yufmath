@@ -3,7 +3,7 @@
 //! 定义数学表达式中使用的各种运算符。
 
 /// 二元运算符
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
 pub enum BinaryOperator {
     // 基本算术运算
     /// 加法 +
@@ -135,7 +135,7 @@ impl BinaryOperator {
 }
 
 /// 一元运算符
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
 pub enum UnaryOperator {
     // 基本运算
     /// 负号 -

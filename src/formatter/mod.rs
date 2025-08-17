@@ -17,7 +17,7 @@ pub use terminal::TerminalFormatter;
 use crate::core::Expression;
 
 /// 输出格式类型
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub enum FormatType {
     /// 标准数学记号
     Standard,

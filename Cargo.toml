@@ -13,12 +13,12 @@ strip = true
 
 [dependencies]
 # 数值计算依赖
-num-bigint = "0.4"
-num-rational = "0.4"
+num-bigint = { version = "0.4", features = ["serde"] }
+num-rational = { version = "0.4", features = ["serde"] }
 num-complex = "0.4"
 num-traits = "0.2"
 num-integer = "0.1"
-bigdecimal = "0.4"
+bigdecimal = { version = "0.4", features = ["serde"] }
 
 # 错误处理
 thiserror = "1.0"
@@ -40,6 +40,13 @@ indicatif = "0.17"
 
 # 并行计算支持
 rayon = "1.8"
+
+# 序列化支持
+serde = { version = "1.0", features = ["derive"] }
+toml = "0.8"
+
+# UUID 支持
+uuid = { version = "1.0", features = ["v4", "serde"] }
 
 [dev-dependencies]
 # 性能基准测试

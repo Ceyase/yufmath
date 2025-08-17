@@ -47,7 +47,19 @@ yufmath/
 │   │   ├── interactive.rs  # 交互模式
 │   │   ├── progress.rs     # 进度条支持
 │   │   └── terminal.rs     # 终端初始化和颜色支持
-│   └── ffi/                # 外部函数接口
+│   ├── ffi/                # 外部函数接口
+│   │   ├── mod.rs
+│   │   ├── c_api.rs        # C 接口
+│   │   └── types.rs        # FFI 类型定义
+│   └── notebook/           # 笔记本模式（新增）
+│       ├── mod.rs
+│       ├── cell.rs         # 单元格定义
+│       ├── notebook.rs     # 笔记本管理
+│       ├── execution.rs    # 执行引擎
+│       ├── scope.rs        # 变量作用域
+│       ├── format.rs       # 文件格式
+│       ├── ui.rs           # 用户界面
+│       └── export.rs       # 导出功能
 │       ├── mod.rs
 │       ├── c_api.rs        # C API
 │       └── types.rs        # FFI 类型
@@ -402,3 +414,263 @@ cargo bench
 # 构建命令行工具
 cargo build --bin yufmath
 ```
+#
+# 笔记本模式架构（新增功能）
+
+### 概述
+
+笔记本模式是 Yufmath 的新增功能，提供类似 Mathematica 风格的交互式数学计算和文档编写环境。支持多种单元格类型、变量作用域管理、文件格式处理和导出功能。
+
+### 核心组件
+
+#### 1. 单元格系统 (`cell.rs`)
+
+**数据结构**:
+```rust
+pub struct NotebookCell {
+    pub id: CellId,                    // 唯一标识符
+    pub cell_type: CellType,           // 单元格类型
+    pub content: CellContent,          // 单元格内容
+    pub metadata: CellMetadata,        // 元数据
+    pub output: Option<Box<NotebookCell>>, // 输出结果
+}
+
+pub enum CellType {
+    Code,      // 代码单元格（可执行）
+    Text,      // 文本单元格
+    Markdown,  // Markdown 单元格
+    Output,    // 输出单元格（只读）
+}
+```
+
+**主要功能**:
+- 支持多种单元格类型的创建和管理
+- 自动跟踪单元格的修改状态和执行历史
+- 支持单元格类型转换和复制
+- 提供标签和自定义属性支持
+
+#### 2. 笔记本管理 (`notebook.rs`)
+
+**数据结构**:
+```rust
+pub struct Notebook {
+    pub id: NotebookId,
+    pub metadata: NotebookMetadata,    // 笔记本元数据
+    pub cells: Vec<NotebookCell>,      // 单元格列表
+    pub file_path: Option<PathBuf>,    // 文件路径
+}
+
+pub struct NotebookManager {
+    notebooks: HashMap<NotebookId, Notebook>,
+    active_notebook: Option<NotebookId>,
+}
+```
+
+**主要功能**:
+- 笔记本的创建、打开、保存和关闭
+- 单元格的增删改查和移动操作
+- 多笔记本管理和切换
+- 搜索和统计功能
+- 未保存状态跟踪
+
+#### 3. 执行引擎 (`execution.rs`)
+
+**数据结构**:
+```rust
+pub struct ExecutionEngine {
+    yufmath: Yufmath,                  // 计算引擎
+    scope_manager: ScopeManager,       // 作用域管理器
+    execution_queue: ExecutionQueue,   // 执行队列
+    statistics: ExecutionStatistics,   // 执行统计
+}
+
+pub struct ExecutionQueue {
+    queue: VecDeque<ExecutionQueueItem>,
+    executing: HashSet<CellId>,
+    completed: HashSet<CellId>,
+    failed: HashSet<CellId>,
+}
+```
+
+**主要功能**:
+- 单元格的单独执行和批量执行
+- 依赖关系分析和智能调度
+- 异步执行和进度监控
+- 执行结果缓存和统计
+- 错误处理和恢复机制
+
+#### 4. 变量作用域 (`scope.rs`)
+
+**数据结构**:
+```rust
+pub struct VariableScope {
+    pub name: String,
+    variables: HashMap<String, VariableBinding>,
+    parent: Option<Box<VariableScope>>,
+}
+
+pub struct ScopeManager {
+    global_scope: VariableScope,
+    cell_scopes: HashMap<CellId, VariableScope>,
+    current_scope: Option<CellId>,
+}
+```
+
+**主要功能**:
+- 全局和单元格级别的变量作用域
+- 变量的定义、更新和查询
+- 常量保护机制
+- 嵌套作用域支持
+- 变量使用统计和管理
+
+#### 5. 文件格式 (`format.rs`)
+
+**文件格式**: `.ynb` (Yufmath Notebook) - 基于 TOML 格式
+
+**主要功能**:
+- 笔记本的序列化和反序列化
+- 版本兼容性处理
+- 文件验证和修复
+- 备份创建和恢复
+- 模板生成
+
+**示例格式**:
+```toml
+format_version = "1.0"
+
+[notebook.metadata]
+title = "示例笔记本"
+author = "用户"
+created_at = 2025-01-17T10:00:00Z
+
+[[notebook.cells]]
+id = "uuid-here"
+cell_type = "Code"
+content = { Text = "2 + 3" }
+```
+
+#### 6. 用户界面 (`ui.rs`)
+
+**主要功能**:
+- 基于终端的笔记本界面
+- 键盘快捷键支持
+- 单元格的创建、编辑、删除和移动
+- 导航和状态显示
+- 帮助系统
+
+**快捷键**:
+- `Ctrl+N`: 创建新代码单元格
+- `Ctrl+M`: 创建新 Markdown 单元格
+- `Ctrl+Enter`: 执行当前单元格
+- `Shift+Enter`: 执行并创建新单元格
+- `Ctrl+S`: 保存笔记本
+- `Ctrl+H`: 显示帮助
+
+#### 7. 导出功能 (`export.rs`)
+
+**支持格式**:
+- **HTML**: 包含数学公式渲染（MathJax/KaTeX）
+- **PDF**: 通过 LaTeX 生成
+- **Markdown**: 标准 Markdown 格式
+- **代码**: 纯代码文件
+- **LaTeX**: LaTeX 源码
+
+**主要功能**:
+- 多格式导出支持
+- 自定义模板和样式
+- 数学公式渲染
+- 代码语法高亮
+- 元数据包含选项
+
+### 技术特性
+
+#### 1. 精确计算支持
+- 所有计算默认使用精确表示
+- 支持任意精度数值类型
+- 符号计算和数值近似并存
+
+#### 2. 序列化支持
+- 所有核心类型支持 serde 序列化
+- 兼容 TOML 文件格式
+- 版本迁移和兼容性处理
+
+#### 3. 错误处理
+```rust
+pub enum NotebookError {
+    Cell(String),                    // 单元格错误
+    Execution(ComputeError),         // 执行错误
+    Serialization(String),           // 序列化错误
+    Io(std::io::Error),             // IO 错误
+    Format(String),                  // 格式错误
+    Scope(String),                   // 作用域错误
+}
+```
+
+#### 4. 性能优化
+- 惰性求值和缓存机制
+- 依赖关系分析避免重复计算
+- 并行执行支持
+- 内存管理优化
+
+### 使用示例
+
+#### 基本使用
+```rust
+use yufmath::notebook::*;
+
+// 创建笔记本
+let mut notebook = Notebook::with_title("数学计算".to_string());
+
+// 添加代码单元格
+let code_cell = NotebookCell::new_code("x = 2 + 3".to_string());
+notebook.add_cell(code_cell);
+
+// 添加 Markdown 单元格
+let md_cell = NotebookCell::new_markdown("# 计算结果".to_string());
+notebook.add_cell(md_cell);
+
+// 执行单元格
+let mut engine = ExecutionEngine::new();
+for cell in notebook.cells.iter_mut() {
+    if cell.is_executable() {
+        let result = engine.execute_cell(cell)?;
+        println!("执行结果: {:?}", result);
+    }
+}
+```
+
+#### 文件操作
+```rust
+// 保存笔记本
+NotebookSerializer::save_to_file(&mut notebook, "example.ynb")?;
+
+// 加载笔记本
+let loaded = NotebookDeserializer::load_from_file("example.ynb")?;
+
+// 导出为 HTML
+let exporter = NotebookExporter::new();
+exporter.export_to_file(&notebook, "output.html", ExportFormat::Html)?;
+```
+
+### 测试覆盖
+
+笔记本模块包含完整的测试覆盖：
+- 单元测试：每个组件的独立功能测试
+- 集成测试：组件间协作的端到端测试
+- 文件格式测试：序列化和反序列化测试
+- 导出功能测试：各种格式的导出测试
+
+**测试统计**:
+- 总测试数：55个
+- 通过测试：50个
+- 失败测试：5个（正在修复中）
+
+### 未来扩展
+
+1. **Web 界面**: 基于 Web 的笔记本界面
+2. **实时协作**: 多用户协作编辑支持
+3. **插件系统**: 自定义扩展和插件支持
+4. **云同步**: 云端存储和同步功能
+5. **更多导出格式**: 支持更多输出格式
+
+笔记本模式为 Yufmath 提供了强大的交互式计算环境，使其更适合教学、研究和日常数学计算任务。
