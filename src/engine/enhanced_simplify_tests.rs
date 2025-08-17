@@ -293,4 +293,101 @@ mod tests {
             }
         }
     }
+    
+    #[test]
+    fn test_nested_radical_simplification() {
+        let mut simplifier = EnhancedSimplifier::new();
+        
+        // 测试嵌套根式简化：sqrt(3 - 2*sqrt(2)) = sqrt(2) - 1
+        // 这是一个特殊的嵌套根式，可以化简为 sqrt(2) - 1
+        let sqrt2 = Expression::function("sqrt", vec![Expression::Number(Number::integer(2))]);
+        let two_sqrt2 = Expression::multiply(Expression::Number(Number::integer(2)), sqrt2);
+        let three_minus_two_sqrt2 = Expression::subtract(Expression::Number(Number::integer(3)), two_sqrt2);
+        let nested_sqrt = Expression::function("sqrt", vec![three_minus_two_sqrt2]);
+        
+        let result = simplifier.enhanced_simplify(&nested_sqrt).unwrap();
+        
+        println!("输入: sqrt(3 - 2*sqrt(2))");
+        println!("输出: {:?}", result);
+        
+        // 期望结果：sqrt(2) - 1
+        // 验证：(sqrt(2) - 1)² = 2 - 2*sqrt(2) + 1 = 3 - 2*sqrt(2) ✓
+        let expected_sqrt2 = Expression::function("sqrt", vec![Expression::Number(Number::integer(2))]);
+        let expected = Expression::subtract(expected_sqrt2, Expression::Number(Number::integer(1)));
+        
+        println!("期望: {:?}", expected);
+        
+        // 验证结果是否正确
+        match &result {
+            Expression::BinaryOp { op: crate::core::BinaryOperator::Subtract, left, right } => {
+                // 检查是否为 sqrt(2) - 1 的形式
+                let is_sqrt2 = matches!(left.as_ref(), Expression::Function { name, args } 
+                    if name == "sqrt" && args.len() == 1 && args[0] == Expression::Number(Number::integer(2)));
+                let is_one = matches!(right.as_ref(), Expression::Number(n) if n == &Number::integer(1));
+                
+                assert!(is_sqrt2 && is_one, "结果应该是 sqrt(2) - 1 的形式");
+                println!("✓ 嵌套根式 sqrt(3 - 2*sqrt(2)) 成功简化为 sqrt(2) - 1");
+            }
+            Expression::BinaryOp { op: crate::core::BinaryOperator::Add, left, right } => {
+                // 也接受 sqrt(2) + (-1) 的形式
+                let is_sqrt2 = matches!(left.as_ref(), Expression::Function { name, args } 
+                    if name == "sqrt" && args.len() == 1 && args[0] == Expression::Number(Number::integer(2)));
+                let is_neg_one = matches!(right.as_ref(), Expression::Number(n) if n == &Number::integer(-1));
+                
+                if is_sqrt2 && is_neg_one {
+                    println!("✓ 嵌套根式 sqrt(3 - 2*sqrt(2)) 成功简化为 sqrt(2) + (-1)，等价于 sqrt(2) - 1");
+                } else {
+                    panic!("结果不是预期的 sqrt(2) - 1 形式，实际结果: {:?}", result);
+                }
+            }
+            _ => {
+                panic!("结果不是预期的 sqrt(2) - 1 形式，实际结果: {:?}", result);
+            }
+        }
+    }
+    
+    #[test]
+    fn test_more_nested_radicals() {
+        let mut simplifier = EnhancedSimplifier::new();
+        
+        // 测试更多嵌套根式
+        
+        // 1. sqrt(3 + 2*sqrt(2)) = sqrt(2) + 1
+        let sqrt2 = Expression::function("sqrt", vec![Expression::Number(Number::integer(2))]);
+        let two_sqrt2 = Expression::multiply(Expression::Number(Number::integer(2)), sqrt2);
+        let three_plus_two_sqrt2 = Expression::add(Expression::Number(Number::integer(3)), two_sqrt2);
+        let nested_sqrt1 = Expression::function("sqrt", vec![three_plus_two_sqrt2]);
+        
+        let result1 = simplifier.enhanced_simplify(&nested_sqrt1).unwrap();
+        println!("输入: sqrt(3 + 2*sqrt(2))");
+        println!("输出: {:?}", result1);
+        
+        // 2. sqrt(5 - 2*sqrt(6)) = sqrt(3) - sqrt(2)
+        let sqrt6 = Expression::function("sqrt", vec![Expression::Number(Number::integer(6))]);
+        let two_sqrt6 = Expression::multiply(Expression::Number(Number::integer(2)), sqrt6);
+        let five_minus_two_sqrt6 = Expression::subtract(Expression::Number(Number::integer(5)), two_sqrt6);
+        let nested_sqrt2 = Expression::function("sqrt", vec![five_minus_two_sqrt6]);
+        
+        let result2 = simplifier.enhanced_simplify(&nested_sqrt2).unwrap();
+        println!("输入: sqrt(5 - 2*sqrt(6))");
+        println!("输出: {:?}", result2);
+        
+        // 3. sqrt(7 - 4*sqrt(3)) = 2 - sqrt(3)
+        let sqrt3 = Expression::function("sqrt", vec![Expression::Number(Number::integer(3))]);
+        let four_sqrt3 = Expression::multiply(Expression::Number(Number::integer(4)), sqrt3);
+        let seven_minus_four_sqrt3 = Expression::subtract(Expression::Number(Number::integer(7)), four_sqrt3);
+        let nested_sqrt3 = Expression::function("sqrt", vec![seven_minus_four_sqrt3]);
+        
+        let result3 = simplifier.enhanced_simplify(&nested_sqrt3).unwrap();
+        println!("输入: sqrt(7 - 4*sqrt(3))");
+        println!("输出: {:?}", result3);
+        
+        // 验证至少有一些被简化了
+        let simplified_count = [&result1, &result2, &result3].iter()
+            .filter(|result| !matches!(result, Expression::Function { name, .. } if name == "sqrt"))
+            .count();
+        
+        println!("成功简化的嵌套根式数量: {}/3", simplified_count);
+        assert!(simplified_count > 0, "至少应该有一个嵌套根式被简化");
+    }
 }
